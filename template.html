@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股操盘驾驶舱 v12</title>
+<style>
+:root{color-scheme:light;--bg:#fff;--panel:#f8f9fa;--border:#dee2e6;--text:#212529;--muted:#6c757d;--accent:#1a73e8;--up:#dc3545;--down:#198754;--warn:#f0ad4e;--card-shadow:0 1px 3px rgba(0,0,0,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f1f3f5;color:var(--text);min-height:100vh}
+.login-overlay{position:fixed;inset:0;background:#f1f3f5;z-index:9999;display:flex;align-items:center;justify-content:center}
+.login-box{background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.1);padding:32px 28px;width:340px;text-align:center}
+.login-box h2{font-size:18px;margin-bottom:4px;color:#212529}
+.login-box .sub{font-size:12px;color:#6c757d;margin-bottom:20px}
+.login-box input{width:100%;padding:8px 10px;border:1px solid #dee2e6;border-radius:4px;font-size:13px;margin-bottom:10px;outline:none}
+.login-box input:focus{border-color:var(--accent)}
+.login-box button{width:100%;padding:8px;background:var(--accent);color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;margin-top:4px}
+.login-box button:hover{background:#1557b0}
+.login-err{color:#dc3545;font-size:11px;margin-top:6px;display:none}
+.header{background:#fff;border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.header h1{font-size:15px;color:#212529;font-weight:600}
+.hdr-right{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--muted)}
+.hdr-btn{padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;border:1px solid var(--border);background:#fff;color:#495057;transition:all .15s}
+.hdr-btn:hover{background:#e9ecef;border-color:#adb5bd}
+.hdr-btn.warn{border-color:#f0ad4e;color:#f0ad4e}
+.hdr-btn.warn:hover{background:#fff3cd}
+.tabs{display:flex;gap:0;background:#fff;border-bottom:1px solid var(--border);padding:0 12px}
+.tab{padding:8px 18px;font-size:12px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-weight:500}
+.tab:hover{color:#495057}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.main-area{padding:10px;max-width:1400px;margin:0 auto}
+.panel{background:var(--panel);border-radius:6px;border:1px solid var(--border);margin-bottom:10px;overflow:hidden}
+.panel-title{font-size:12.5px;font-weight:600;color:#212529;padding:8px 12px;border-bottom:1px solid var(--border);background:#fff;display:flex;justify-content:space-between;align-items:center}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+th{background:#f8f9fa;font-weight:600;color:#495057;font-size:10.5px;text-transform:uppercase;position:sticky;top:0}
+tr{cursor:pointer;transition:background .1s}
+tr:hover{background:#e8f0fe}
+tr.selected{background:#d2e3fc!important}
+.tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9.5px;font-weight:600}
+.tag.top{background:#fce4e4;color:#dc3545}
+.tag.bot{background:#d4edda;color:#198754}
+.tag.new{background:#fff3cd;color:#856404}
+.range-bar{display:inline-block;height:18px;border-radius:3px;opacity:.35;vertical-align:middle;margin:0 4px}
+.range-up{background:#dc3545}
+.range-dn{background:#198754}
+.chart-detail{display:none;padding:8px;background:#fff;border-radius:6px;border:1px solid var(--border);margin-bottom:10px}
+.chart-detail.active{display:block}
+.period-row{display:flex;gap:4px;margin-bottom:6px}
+.pchip{padding:3px 10px;border-radius:4px;font-size:10.5px;border:1px solid var(--border);cursor:pointer;background:#fff;color:var(--muted);transition:all .15s}
+.pchip:hover{border-color:var(--accent)}
+.pchip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chart-box{width:100%;overflow:hidden;background:#fff}
+.macro-section{margin-bottom:10px}
+.macro-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:8px}
+.macro-card{background:#fff;border-radius:6px;border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:box-shadow .15s}
+.macro-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.macro-card .mc-title{font-size:11px;font-weight:600;color:#495057;padding:6px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
+.macro-chart{width:100%;height:180px}
+.indicator-table{margin-top:0}
+.modal-overlay,.alert-overlay,.chart-full-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:2000;display:flex;align-items:center;justify-content:center}
+.modal-box,.alert-box,.chart-full-box{background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.15);max-width:700px;width:90%;max-height:80vh;overflow-y:auto}
+.modal-title{font-size:14px;font-weight:600;padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-body{padding:12px 16px}
+.modal-body input,.modal-body select{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:11px;margin-bottom:8px;outline:none}
+.status-bar{padding:3px 12px;font-size:10px;color:var(--muted);border-top:1px solid var(--border);background:#fff}
+.toast-container{position:fixed;bottom:16px;right:16px;z-index:3000;display:flex;flex-direction:column;gap:4px}
+.toast{background:#fff;border:1px solid var(--border);border-radius:4px;padding:6px 12px;font-size:10.5px;box-shadow:0 2px 8px rgba(0,0,0,.1);max-width:300px;animation:fadeIn .3s}
+.toast.top{border-left:3px solid #dc3545}
+.toast.bot{border-left:3px solid #198754}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.btn{padding:4px 12px;border-radius:4px;cursor:pointer;font-size:10.5px;border:1px solid var(--border);background:#fff;color:#495057;transition:all .15s;white-space:nowrap}
+.btn:hover{background:#e9ecef}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{background:#1557b0}
+.btn.danger{color:#dc3545;border-color:#dc3545}
+.btn.danger:hover{background:#fce4e4}
+.btn.sm{padding:2px 8px;font-size:9.5px}
+.loading{text-align:center;padding:30px;color:var(--muted);font-size:12px}
+.toolbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0}
+.toolbar input{padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:10.5px;width:80px;outline:none}
+.toolbar select{padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:10.5px;outline:none}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div class="login-overlay" id="login-overlay">
+<div class="login-box">
+<h2>A股操盘驾驶舱 v12</h2>
+<div class="sub">请输入账号密码</div>
+<input type="text" id="login-user" placeholder="用户名" value="admin">
+<input type="password" id="login-pass" placeholder="密码" value="123456">
+<button onclick="doLogin()">登 录</button>
+<div class="login-err" id="login-err">账号或密码错误</div>
+</div>
+</div>
+
+<!-- Header -->
+<div class="header">
+<h1>A股操盘驾驶舱 v12</h1>
+<div class="hdr-right">
+<span id="clock" style="font-weight:600;font-size:13px;color:#212529">--:--:--</span>
+<select id="symbol-select" onchange="onSymbolChange()" style="padding:3px 6px;border:1px solid #dee2e6;border-radius:4px;font-size:11px;outline:none"></select>
+<button class="hdr-btn warn" onclick="showDivergenceAlert()" id="alert-badge">⚡ 背离</button>
+<button class="hdr-btn" onclick="showSymbolManager()">+ 添加标的</button>
+<button class="hdr-btn" onclick="showIndicatorManager()">📊 价格指标</button>
+<button class="hdr-btn" onclick="logout()" style="color:#dc3545">退出</button>
+</div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+<div class="tab active" onclick="switchMainTab('divergence')" id="tab-divergence">背离监控</div>
+<div class="tab" onclick="switchMainTab('macro')" id="tab-macro">宏观指标</div>
+<div class="tab" onclick="switchMainTab('custom')" id="tab-custom">价格指标</div>
+</div>
+
+<!-- Tab: Divergence -->
+<div class="tab-pane" id="pane-divergence">
+<div class="main-area">
+<div class="panel"><div class="panel-title"><span>背离信号一览</span><span style="font-size:10px;color:var(--muted)">点击行查看K线图</span></div>
+<div class="table-wrap"><table><thead><tr><th>标的</th><th>15m</th><th>30m</th><th>60m</th><th>日线</th><th>周线</th><th>背离次数</th><th>最近信号</th></tr></thead><tbody id="divergence-body"></tbody></table></div></div>
+<div class="chart-detail" id="chart-detail">
+<div class="panel-title" id="chart-title"></div>
+<div class="period-row" id="chart-periods"></div>
+<div class="chart-box" id="chart-box"></div>
+</div>
+</div>
+</div>
+
+<!-- Tab: Macro -->
+<div class="tab-pane" id="pane-macro" style="display:none">
+<div class="main-area">
+<div class="macro-section"><div class="panel-title">📊 宽基指数 & 债券</div><div id="macro-indices" style="padding:8px 12px;font-size:11px;display:flex;flex-wrap:wrap;gap:4px 16px"></div></div>
+<div class="macro-section"><div class="panel-title">宏观经济数据 <span style="font-size:10px;color:var(--muted)">CPI / PPI / PMI</span></div><div class="macro-grid" id="macro-econ"></div></div>
+<div class="macro-section"><div class="panel-title">成交量趋势 <span style="font-size:10px;color:var(--muted)">上证日成交额 (亿)</span></div><div class="macro-grid" id="macro-volume"></div></div>
+<div class="macro-section"><div class="panel-title">融资融券余额 <span style="font-size:10px;color:var(--muted)">沪深两市 (亿)</span></div><div class="macro-grid" id="macro-margin"></div></div>
+<div class="macro-section"><div class="panel-title">利率与货币 <span style="font-size:10px;color:var(--muted)">Shibor隔夜 / M2同比 / LPR / 国债10年期</span></div><div class="macro-grid" id="macro-rates"></div></div>
+<div class="macro-section"><div class="panel-title">ETF资金流向 <span style="font-size:10px;color:var(--muted)">每日资金流 5日均线 (亿)</span></div><div class="macro-grid" id="macro-etf"></div></div>
+<div class="macro-section"><div class="panel-title">大宗商品 <span style="font-size:10px;color:var(--muted)">贵金属 / 工业金属 / 能源</span></div><div class="macro-grid" id="macro-comm"></div></div>
+</div>
+</div>
+
+<!-- Tab: Custom Indicators -->
+<div class="tab-pane" id="pane-custom" style="display:none">
+<div class="main-area">
+<div class="panel"><div class="panel-title"><span>自定义价格指标</span><button class="btn sm primary" onclick="showIndicatorManager()">+ 添加</button></div>
+<div class="table-wrap"><table class="indicator-table"><thead><tr><th>名称</th><th>价格</th><th>涨跌</th><th>更新时间</th><th>数据源</th><th>操作</th></tr></thead><tbody id="custom-indicator-body"></tbody></table></div></div>
+</div>
+</div>
+
+<div class="status-bar" id="status-bar">数据加载中...</div>
+<div class="toast-container" id="toasts"></div>
+
+<script>
+%%LWCHARTS%%
+
+var P = __PAYLOAD_JSON__;
+// ============ A-Share Cockpit v12 ============
+var UPCOL="#dc3545",DNCOL="#198754",MA12C="#f0ad4e",MA26C="#1a73e8";
+var PERIOD_NAMES={"15":"15分钟","30":"30分钟","60":"60分钟","240":"日线","1200":"周线"};
+var state={activeIdx:0,activePeriod:"240",symbols:[],alertSettings:{popup:true,saw:{}},customIndicators:[],currentTab:"divergence"};
+var _charts=[],_macroCharts={};
+
+// ===== UTILS =====
+function num(v,d){d=d||0;return v==null||isNaN(v)?"--":v.toFixed(d);}
+function pctSign(v){if(v==null)return"--";var s=v>=0?"+":"";return s+v.toFixed(2)+"%";}
+function fmtMoney(v){if(!v||v==0)return"--";v=Math.abs(v);return v>=1e8?(v/1e8).toFixed(0)+"亿":v>=1e4?(v/1e4).toFixed(0)+"万":v.toFixed(0);}
+function isWeekend(ts){
+  if(!ts)return false;
+  var d=new Date(ts*1000);
+  var dow=d.getDay();
+  return dow===0||dow===6;
+}
+function toTime(t){
+  if(!t)return null;
+  if(/^\d{8}$/.test(t))t=t.slice(0,4)+"-"+t.slice(4,6)+"-"+t.slice(6,8);
+  t=t.replace(/\s+/g,"T");if(t.length<=10)t+="T00:00:00";
+  if(!t.match(/[+-]\d{2}:\d{2}$/))t+="+08:00";
+  var ts=Math.floor(new Date(t).getTime()/1000);
+  return isNaN(ts)?null:ts;
+}
+function loadLocal(key,def){try{var r=localStorage.getItem(key);return r?JSON.parse(r):def;}catch(e){return def;}}
+function saveLocal(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}}
+
+// ===== LOGIN =====
+function doLogin(){
+  var u=document.getElementById("login-user").value.trim();
+  var p=document.getElementById("login-pass").value.trim();
+  if(u==="admin"&&p==="123456"){
+    document.getElementById("login-overlay").style.display="none";
+    try{init();}catch(e){alert("初始化失败: "+e.message);}
+  }else{
+    document.getElementById("login-err").style.display="block";
+  }
+}
+function logout(){
+  document.getElementById("login-overlay").style.display="flex";
+  document.getElementById("login-user").value="admin";
+  document.getElementById("login-pass").value="123456";
+  document.getElementById("login-err").style.display="none";
+}
+
+// ===== SYMBOL MGMT =====
+function initSymbols(){
+  var fromLS=loadLocal("cockpit_v12_symbols_v2",null);
+  if(fromLS&&fromLS.length>0){state.symbols=fromLS;}
+  else{
+    var defaults=[];
+    if(P.symbols)defaults=P.symbols;
+    else{
+      var codes=Object.keys(P.kl||{});if(!codes.length)codes=["000001","399001","399006","000688"];
+      for(var i=0;i<codes.length;i++){
+        var c=codes[i],q=P.rt[c]||{};
+        defaults.push({code:c,market:c.startsWith("6")?"sh":"sz",name:q.name||c});
+      }
+    }
+    state.symbols=defaults;
+  }
+  state.activeIdx=0;
+  var sel=document.getElementById("symbol-select");
+  if(!sel)return;
+  sel.innerHTML="";
+  for(var i=0;i<state.symbols.length;i++){
+    var s=state.symbols[i];
+    var opt=document.createElement("option");
+    opt.value=i;opt.textContent=s.name+" ("+s.code+")";
+    if(i===state.activeIdx)opt.selected=true;
+    sel.appendChild(opt);
+  }
+  try{switchMainTab(state.currentTab||"divergence");}catch(e){}
+}
+function onSymbolChange(){
+  state.activeIdx=parseInt(document.getElementById("symbol-select").value)||0;
+  try{switchMainTab(state.currentTab||"divergence");}catch(e){}
+}
+
+// ===== ALERT SETTINGS =====
+function loadAlertSettings(){state.alertSettings=loadLocal("cockpit_v12_alerts",{popup:true,saw:{}});}
+function saveAlertSettings(){saveLocal("cockpit_v12_alerts",state.alertSettings);}
+function loadCustomIndicators(){state.customIndicators=loadLocal("cockpit_v12_indicators",[]);}
+
+// ===== TAB SWITCHING =====
+function switchMainTab(tab){
+  state.currentTab=tab;
+  document.querySelectorAll(".tab").forEach(function(el){el.classList.remove("active");});
+  var tabEl=document.getElementById("tab-"+tab);if(tabEl)tabEl.classList.add("active");
+  document.querySelectorAll(".tab-pane").forEach(function(el){el.style.display="none";});
+  var paneEl=document.getElementById("pane-"+tab);if(paneEl)paneEl.style.display="block";
+  if(tab==="divergence")renderDivergenceTable();
+  if(tab==="macro")renderMacro();
+  if(tab==="custom")renderCustomIndicators();
+}
+
+// ===== DIVERGENCE TABLE =====
+function allDivergence(maxDays){
+  maxDays=maxDays||90;
+  var result=[];
+  for(var i=0;i<state.symbols.length;i++){
+    var sym=state.symbols[i],code=sym.code;
+    var div=P.divergence[code]||{};
+    for(var per in div){
+      var sigs=div[per];
+      for(var j=0;j<sigs.length;j++){
+        var s=sigs[j];
+        var cutoff=new Date();
+        cutoff.setDate(cutoff.getDate()-maxDays);
+        if(new Date(s.date)>=cutoff){
+          result.push({code:code,name:sym.name,period:per,periodName:PERIOD_NAMES[per]||per,type:s.type,date:s.date,prev_date:s.prev_date,price:s.price,prev_price:s.prev_price,dif:s.dif,prev_dif:s.prev_dif,price_lo:s.price_lo,price_hi:s.price_hi});
+        }
+      }
+    }
+  }
+  result.sort(function(a,b){return b.date.localeCompare(a.date);});
+  return result;
+}
+function renderDivergenceTable(){
+  var all=allDivergence(90);
+  var PERIODS=["15","30","60","240","1200"];
+  // Build map: code -> period -> {type,date}
+  var byCode={};
+  for(var i=0;i<state.symbols.length;i++){
+    var code=state.symbols[i].code;
+    byCode[code]={name:state.symbols[i].name};
+    for(var j=0;j<PERIODS.length;j++){byCode[code][PERIODS[j]]=null;}
+  }
+  for(var i=0;i<all.length;i++){
+    var s=all[i], c=byCode[s.code];
+    if(!c)continue;
+    if(!c[s.period] || s.date>c[s.period].date) c[s.period]={type:s.type,date:s.date};
+  }
+  var rows="";
+  for(var i=0;i<state.symbols.length;i++){
+    var code=state.symbols[i].code, c=byCode[code];
+    var cells="", sigCount=0, latestDate="";
+    for(var j=0;j<PERIODS.length;j++){
+      var p=PERIODS[j], pinfo=c[p], pname=PERIOD_NAMES[p]||p;
+      if(pinfo){
+        sigCount++;
+        if(!latestDate||pinfo.date>latestDate) latestDate=pinfo.date;
+        var tagCls=pinfo.type==="top"?"tag top":"tag bot";
+        var tagTxt=pinfo.type==="top"?"顶":"底";
+        cells+='<td onclick="showChartDetail(\''+code+'\',\''+p+'\')" style="cursor:pointer"><span class="'+tagCls+'">'+tagTxt+'</span> <span style="font-size:9px;color:var(--muted)">'+pinfo.date+'</span></td>';
+      }else{
+        cells+='<td style="color:var(--muted);font-size:10px">―</td>';
+      }
+    }
+    rows+='<tr><td><b>'+c.name+'</b></td>'+cells+'<td style="font-weight:600;color:'+(sigCount>0?'var(--accent)':'var(--muted)')+'">'+sigCount+'</td><td style="font-size:10px;color:var(--muted)">'+(latestDate||'―')+'</td></tr>';
+  }
+  var tb=document.getElementById("divergence-body");if(tb)tb.innerHTML=rows;
+}
+
+// ===== K-LINE CHART =====
+function showChartDetail(code,period){
+  state.activeIdx=-1;
+  for(var i=0;i<state.symbols.length;i++){if(state.symbols[i].code===code){state.activeIdx=i;break;}}
+  if(state.activeIdx<0)state.activeIdx=0;
+  state.activePeriod=period;
+  var panel=document.getElementById("chart-detail");
+  panel.classList.add("active");
+  var titleEl=document.getElementById("chart-title");
+  if(titleEl)titleEl.textContent=(P.rt[code]||{}).name||code;
+  
+  // Period selector
+  var periodEl=document.getElementById("chart-periods");
+  if(periodEl){
+    var perHtml="";
+    var kls=P.kl[code]||{};
+    for(var p in PERIOD_NAMES){perHtml+='<span class="pchip'+(p===period?" active":"")+'" onclick="showChartDetail(\''+code+'\',\''+p+'\')">'+PERIOD_NAMES[p]+'</span>';}
+    periodEl.innerHTML=perHtml;
+  }
+  
+  var kls=P.kl[code]||{};
+  var bars=kls[period]||[];
+  if(!bars.length){document.getElementById("chart-box").innerHTML='<div class="loading">暂无'+PERIOD_NAMES[period]+'数据</div>';return;}
+  drawKlineChart(code,bars,period);
+}
+function drawKlineChart(code,bars,period){
+  var box=document.getElementById("chart-box");
+  box.innerHTML="";
+  _charts=[];
+  var h=Math.max(420,window.innerHeight-260);
+  
+  var ck=document.createElement("div");ck.style.cssText="width:100%;height:"+Math.floor(h*0.6)+"px";
+  box.appendChild(ck);
+  var chart=LightweightCharts.createChart(ck,{layout:{background:{type:"solid",color:"#fff"},textColor:"#212529"},grid:{vertLines:{color:"#f1f3f5"},horzLines:{color:"#f1f3f5"}},crosshair:{mode:0},timeScale:{timeVisible:false,secondsVisible:false,tickMarkFormatter:function(ts,markType,locale){if(markType!=="Year"&&markType!=="Month"){if(isWeekend(ts))return"";}var d=new Date(ts*1000);return d.getFullYear()+"-"+(d.getMonth()<9?"0":"")+(d.getMonth()+1)+"-"+(d.getDate()<10?"0":"")+d.getDate();}},rightPriceScale:{scaleMargins:{top:0.1,bottom:0.2}}});
+  _charts.push(chart);
+  
+  var cm=document.createElement("div");cm.style.cssText="width:100%;height:"+Math.floor(h*0.22)+"px;border-top:1px solid #eee";
+  box.appendChild(cm);
+  var macdChart=LightweightCharts.createChart(cm,{layout:{background:{type:"solid",color:"#fff"},textColor:"#212529"},grid:{vertLines:{color:"#f1f3f5"},horzLines:{color:"#f1f3f5"}},crosshair:{mode:0},timeScale:{visible:false}});
+  _charts.push(macdChart);
+  
+  var cv=document.createElement("div");cv.style.cssText="width:100%;height:"+Math.floor(h*0.18)+"px;border-top:1px solid #eee";
+  box.appendChild(cv);
+  var volChart=LightweightCharts.createChart(cv,{layout:{background:{type:"solid",color:"#fff"},textColor:"#212529"},grid:{vertLines:{color:"#f1f3f5"},horzLines:{color:"#f1f3f5"}},crosshair:{mode:0},timeScale:{visible:true,timeVisible:false,secondsVisible:false,tickMarkFormatter:function(ts,markType,locale){if(markType!=="Year"&&markType!=="Month"){if(isWeekend(ts))return"";}var d=new Date(ts*1000);return d.getFullYear()+"-"+(d.getMonth()<9?"0":"")+(d.getMonth()+1)+"-"+(d.getDate()<10?"0":"")+d.getDate();}}});
+  _charts.push(volChart);
+  
+  var cdata=[],vols=[];
+  for(var i=0;i<bars.length;i++){
+    var b=bars[i],t=toTime(b.d);if(!t)continue;
+    cdata.push({time:t,open:b.o,high:b.h,low:b.l,close:b.c});
+    vols.push({time:t,value:b.v,color:b.c>=b.o?"rgba(220,53,69,0.5)":"rgba(25,135,84,0.5)"});
+  }
+  
+  function ema(arr,n){
+    var r=[],k=2/(n+1),prev=null;
+    for(var i=0;i<arr.length;i++){
+      if(prev===null){
+        var sum=0,cnt=0;
+        for(var j=Math.max(0,i-n+1);j<=i;j++){sum+=arr[j];cnt++;}
+        prev=sum/cnt;
+      }else prev=arr[i]*k+prev*(1-k);
+      r.push(prev);
+    }
+    return r;
+  }
+  var closes=bars.map(function(b){return b.c;});
+  var e12=ema(closes,12),e26=ema(closes,26);
+  var difs=[],macdData=[],histData=[];
+  for(var i=0;i<closes.length;i++){
+    var dif=e12[i]-e26[i];difs.push(dif);
+    if(i>0){
+      var dea=difs.slice(0,i+1).reduce(function(a,b){return a+b;},0)/(i+1);
+      var hist=(dif-dea)*2;
+      macdData.push({time:cdata[i].time,value:dif});
+      histData.push({time:cdata[i].time,value:hist,color:hist>=0?"rgba(220,53,69,0.5)":"rgba(25,135,84,0.5)"});
+    }
+  }
+  
+  var priceSeries=chart.addCandlestickSeries({upColor:"#dc3545",downColor:"#198754",borderUpColor:"#dc3545",borderDownColor:"#198754",wickUpColor:"#dc3545",wickDownColor:"#198754"});
+  priceSeries.setData(cdata);
+
+  // Divergence markers on K-line chart
+  var divCode=P.divergence[code]||{};
+  var divSigs=divCode[period]||[];
+  var markers=[];
+  for(var i=0;i<divSigs.length;i++){
+    var s=divSigs[i],t=toTime(s.date);
+    if(t!=null){
+      markers.push({time:t,position:s.type==="top"?"aboveBar":"belowBar",color:s.type==="top"?"#dc3545":"#198754",shape:s.type==="top"?"arrowDown":"arrowUp",text:s.type==="top"?"顶"+s.date:"底"+s.date,size:3});
+    }
+  }
+  if(markers.length)priceSeries.setMarkers(markers);
+
+  var macdLine=macdChart.addLineSeries({color:"#1a73e8",lineWidth:1.5});
+  macdLine.setData(macdData);
+  var histSeries=macdChart.addHistogramSeries({});
+  histSeries.setData(histData);
+  var volSeries=volChart.addHistogramSeries({});
+  volSeries.setData(vols);
+  
+  chart.subscribeCrosshairMove(function(param){
+    if(!param.time)return;
+    var sp=chart.timeScale().scrollPosition();
+    macdChart.timeScale().scrollToPosition(sp,false);
+    volChart.timeScale().scrollToPosition(sp,false);
+  });
+  
+  setTimeout(function(){
+    if(cdata.length>0){chart.timeScale().fitContent();macdChart.timeScale().fitContent();volChart.timeScale().fitContent();}
+  },100);
+}
+
+// ===== DIVERGENCE ALERT =====
+function showDivergenceAlert(){
+  var all=allDivergence(90),ex=document.getElementById("alert-overlay");if(ex)ex.remove();
+  var ov=document.createElement("div");ov.className="alert-overlay";ov.id="alert-overlay";
+  var rows="";
+  if(!all.length)rows='<div style="padding:20px;text-align:center;color:var(--muted)">最近90天无背离信号</div>';
+  else{
+    for(var i=0;i<all.length;i++){
+      var s=all[i],sawKey=s.code+"|"+s.period+"|"+s.type+"|"+s.date,isNew=!state.alertSettings.saw[sawKey];
+      rows+='<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid #eee;font-size:11px;cursor:pointer'+(isNew?'background:#fff9e6':'')+'" onclick="showChartDetail(\''+s.code+'\',\''+s.period+'\');this.closest(\'.alert-overlay\').remove()"><span class="tag '+(s.type==="top"?"top":"bot")+'">'+(s.type==="top"?"顶":"底")+'</span><span style="flex:1"><b>'+s.name+'</b> <span style="color:var(--muted)">'+s.periodName+'</span></span><span>'+s.date+'</span><span style="font-weight:600;color:'+(s.type==="top"?"#dc3545":"#198754")+'">'+num(s.price,2)+'</span>'+(isNew?'<span class="tag new">新</span>':'')+'</div>';
+    }
+  }
+  ov.innerHTML='<div class="alert-box"><div class="modal-title"><span>背离信号提醒 <span style="font-size:10px;color:var(--warn)">最近90天 | '+all.length+'个</span></span><button style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted)" onclick="this.closest(\'.alert-overlay\').remove()">&times;</button></div><div class="modal-body" style="padding:0">'+rows+'</div><div style="padding:8px 12px;border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center"><label style="font-size:10px"><input type="checkbox" '+(state.alertSettings.popup?"checked":"")+' onchange="state.alertSettings.popup=this.checked;saveAlertSettings()"> 有新背离时自动弹窗</label><button class="btn sm" onclick="markAllSeen()">全部标记已读</button></div></div>';
+  ov.addEventListener("click",function(e){if(e.target===ov)ov.remove();});document.body.appendChild(ov);
+}
+function markAllSeen(){
+  var all=allDivergence(90);
+  for(var i=0;i<all.length;i++){var s=all[i];state.alertSettings.saw[s.code+"|"+s.period+"|"+s.type+"|"+s.date]=true;}
+  saveAlertSettings();updateAlertBadge();
+  var ov=document.getElementById("alert-overlay");if(ov){ov.remove();showDivergenceAlert();}
+}
+function updateAlertBadge(){
+  var all=allDivergence(90),newCnt=0;
+  for(var i=0;i<all.length;i++){var s=all[i];if(!state.alertSettings.saw[s.code+"|"+s.period+"|"+s.type+"|"+s.date])newCnt++;}
+  var btn=document.getElementById("alert-badge");
+  if(newCnt>0){btn.textContent="⚡ 新背离("+newCnt+")";btn.style.borderColor="#dc3545";btn.style.color="#dc3545";}
+  else{btn.textContent="⚡ 背离";btn.style.borderColor="#f0ad4e";btn.style.color="#f0ad4e";}
+}
+
+// ===== SYMBOL MANAGER MODAL =====
+function showSymbolManager(){
+  var ex=document.getElementById("modal-overlay");if(ex)ex.remove();
+  var sh="";
+  for(var i=0;i<state.symbols.length;i++)
+    sh+='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #eee;font-size:11px"><span><b>'+(i+1)+'.</b> '+state.symbols[i].name+' <span style="color:var(--muted)">'+state.symbols[i].code+' ('+(state.symbols[i].market==="sh"?"沪":"深")+')</span></span><span style="cursor:pointer;color:#dc3545;font-weight:700;padding:2px 6px" onclick="removeSymbol('+i+')">&times;</span></div>';
+  var ov=document.createElement("div");ov.className="modal-overlay";ov.id="modal-overlay";
+  ov.innerHTML='<div class="modal-box"><div class="modal-title"><span>标的管理</span><span style="cursor:pointer;font-size:18px" onclick="this.closest(\'.modal-overlay\').remove()">&times;</span></div><div class="modal-body"><p style="font-size:10px;color:var(--muted);margin-bottom:8px">输入股票代码自动获取名称，或手动填写。添加后需重建数据。</p><div style="display:flex;gap:6px;margin-bottom:4px"><select id="add-mkt" style="width:70px"><option value="sh">沪市</option><option value="sz">深市</option></select><input id="add-code" placeholder="代码（6位数字）" style="flex:1"><input id="add-name" placeholder="名称（可选，自动获取）" style="flex:1"><button class="btn primary" onclick="addSymbol()">添加</button></div><button class="btn sm" style="margin-bottom:8px" onclick="autoDetectName()">🔍 根据代码自动查名称</button><div style="max-height:250px;overflow-y:auto">'+(sh||'<div style="color:var(--muted);font-size:10px;padding:8px">暂无标的</div>')+'</div></div></div>';
+  ov.addEventListener("click",function(e){if(e.target===ov)ov.remove();});document.body.appendChild(ov);
+}
+function autoDetectName(){
+  var code=document.getElementById("add-code").value.trim(),mkt=document.getElementById("add-mkt").value;
+  if(!code||!/^\d{6}$/.test(code)){alert("请先输入6位代码");return;}
+  var secid=(mkt==="sh"?"1.":"0.")+code;
+  fetch("https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f2,f12,f14&secids="+secid+"&_="+Date.now())
+  .then(function(r){return r.json();}).then(function(d){
+    var item=(d&&d.data&&d.data.diff||[])[0];
+    if(item&&item.f14)document.getElementById("add-name").value=item.f14;
+    else alert("未找到该代码");
+  }).catch(function(){alert("查询失败，请检查网络");});
+}
+function addSymbol(){
+  var mkt=document.getElementById("add-mkt").value,code=document.getElementById("add-code").value.trim(),name=document.getElementById("add-name").value.trim();
+  if(!code||!/^\d{6}$/.test(code)){alert("代码格式错误");return;}
+  if(!name){var q=P.rt[code]||{};name=q.name||code;}
+  state.symbols.push({code:code,market:mkt,name:name});
+  saveLocal("cockpit_v12_symbols_v2",state.symbols);
+  initSymbols();document.getElementById("modal-overlay").remove();
+  toast("已添加",name,"bot");
+}
+function removeSymbol(i){
+  if(state.symbols.length<=1){alert("至少保留一个标的");return;}
+  if(!confirm("删除 "+state.symbols[i].name+"？"))return;
+  state.symbols.splice(i,1);saveLocal("cockpit_v12_symbols_v2",state.symbols);
+  initSymbols();document.getElementById("modal-overlay")&&document.getElementById("modal-overlay").remove();
+}
+
+// ===== MACRO RENDERING =====
+function renderMacro(){
+  var m=P.macro||{};
+  
+  var econHtml="";
+  if(m.cpi&&m.cpi.length)econHtml+=macroCard("CPI 当月同比","cpi",m.cpi,"%","#dc3545",2);
+  if(m.ppi&&m.ppi.length)econHtml+=macroCard("PPI 当月同比","ppi",m.ppi,"%","#198754",2);
+  if(m.pmi_mfg&&m.pmi_mfg.length)econHtml+=macroCard("PMI 制造业","pmi_mfg",m.pmi_mfg,"","#1a73e8",1);
+  if(m.pmi_non_mfg&&m.pmi_non_mfg.length)econHtml+=macroCard("PMI 非制造业","pmi_non_mfg",m.pmi_non_mfg,"","#fd7e14",1);
+  document.getElementById("macro-econ").innerHTML=econHtml||'<div class="loading">经济数据收集中...</div>';
+  
+  if(m.volume_trend&&m.volume_trend.length)
+    document.getElementById("macro-volume").innerHTML=macroCard("上证成交额(亿)","volume_trend",m.volume_trend,"亿","#6c757d",0);
+  
+  if(m.margin&&m.margin.length)
+    document.getElementById("macro-margin").innerHTML=macroCardBalance("融资融券余额","margin",m.margin,"亿","#e83e8c",0);
+  
+  var ratesHtml="";
+  if(m.shibor&&m.shibor.length)ratesHtml+=macroCard("Shibor 隔夜","rate-shibor",m.shibor,"%","#20c997",3);
+  if(m.m2&&m.m2.length)ratesHtml+=macroCard("M2 同比","rate-m2",m.m2,"%","#fd7e14",1);
+  if(m.bond10y&&m.bond10y.length)ratesHtml+=macroCard("国债10Y收益率","rate-bond10y",m.bond10y,"%","#6f42c1",2);
+  if(m.lpr&&m.lpr.length)ratesHtml+=macroCardLPR("LPR","rate-lpr",m.lpr);
+  document.getElementById("macro-rates").innerHTML=ratesHtml||'<div class="loading">利率数据收集中...</div>';
+  
+  var etfHtml="";
+  if(m.etf&&m.etf.length){for(var i=0;i<m.etf.length;i++){var etf=m.etf[i];etfHtml+=macroCardFlow(etf.name,"etf"+i,etf.data,"亿",etf.color||"#198754",2);}}
+  document.getElementById("macro-etf").innerHTML=etfHtml||'<div class="loading">ETF数据收集中...</div>';
+  
+  var commHtml="";
+  if(m.commodity&&m.commodity.length){for(var i=0;i<m.commodity.length;i++){var comm=m.commodity[i];commHtml+=macroCard(comm.name,"comm"+i,comm.data,comm.unit||"",comm.color||"#fd7e14",0);}}
+  document.getElementById("macro-comm").innerHTML=commHtml||'<div class="loading">商品数据收集中...</div>';
+  
+  setTimeout(function(){drawAllMacroCharts();},200);
+  
+  var nbr=P.nbr||{};
+  var bondIdx=nbr.bond_idx||{},sectorIdx=nbr.sector_idx||{};
+  var idxHtml="";
+  for(var code in bondIdx){var b=bondIdx[code];idxHtml+='<span style="font-size:11px"><b>'+b.name+'</b> <span style="color:'+(b.pct>=0?"#dc3545":"#198754")+'">'+num(b.price,2)+' '+pctSign(b.pct)+'</span></span>';}
+  for(var code in sectorIdx){var b=sectorIdx[code];idxHtml+='<span style="font-size:11px"><b>'+b.name+'</b> <span style="color:'+(b.pct>=0?"#dc3545":"#198754")+'">'+num(b.price,2)+' '+pctSign(b.pct)+'</span></span>';}
+  document.getElementById("macro-indices").innerHTML=idxHtml||'<span style="color:var(--muted);font-size:11px">指数数据加载中...</span>';
+}
+
+function macroCard(title,id,data,unit,color,decimals){
+  var last=data[data.length-1];
+  var prev=data.length>1?data[data.length-2]:last;
+  var v=last.v!=null?last.v.toFixed(decimals||0):"--";
+  return '<div class="macro-card" id="mc-'+id+'"><div class="mc-title"><span>'+title+'</span><span style="font-weight:700;color:'+color+'">'+v+(unit?" "+unit:"")+'</span></div><div class="macro-chart" id="chart-'+id+'"></div></div>';
+}
+function macroCardLPR(title,id,data){
+  var last1y=null,last5y=null;
+  for(var i=data.length-1;i>=0;i--){if(!last1y&&data[i].v1y!=null)last1y=data[i].v1y;if(!last5y&&data[i].v5y!=null)last5y=data[i].v5y;if(last1y&&last5y)break;}
+  return '<div class="macro-card" id="mc-'+id+'"><div class="mc-title"><span>'+title+'</span><span style="font-weight:700">1Y: <span style="color:#1a73e8">'+(last1y!=null?last1y.toFixed(2):"--")+'%</span> 5Y: <span style="color:#6f42c1">'+(last5y!=null?last5y.toFixed(2):"--")+'%</span></span></div><div class="macro-chart" id="chart-'+id+'"></div></div>';
+}
+function macroCardBalance(title,id,data,unit,color,decimals){var last=data[data.length-1];var v=last.balance!=null?last.balance.toFixed(decimals||0):"--";return '<div class="macro-card" id="mc-'+id+'"><div class="mc-title"><span>'+title+'</span><span style="font-weight:700;color:'+color+'">'+v+(unit?" "+unit:"")+'</span></div><div class="macro-chart" id="chart-'+id+'"></div></div>';}
+function macroCardFlow(title,id,data,unit,color,decimals){var last=data[data.length-1];var flow=last.flow!=null?last.flow.toFixed(decimals||0):"--";return '<div class="macro-card" id="mc-'+id+'"><div class="mc-title"><span>'+title+'</span><span style="font-weight:700;color:'+color+'">'+flow+(unit?" "+unit:"")+'</span></div><div class="macro-chart" id="chart-'+id+'"></div></div>';}
+
+function drawMacroLine(id,data,color,lineWidth){
+  var el=document.getElementById(id);
+  if(!el||!data||!data.length)return;
+  if(_macroCharts[id])_macroCharts[id].remove();
+  el.innerHTML="";
+  var chart=LightweightCharts.createChart(el,{layout:{background:{type:"solid",color:"#fff"},textColor:"#212529"},grid:{vertLines:{visible:false},horzLines:{color:"#f1f3f5"}},crosshair:{mode:0},timeScale:{visible:true,timeVisible:false,secondsVisible:false,tickMarkFormatter:function(ts,markType,locale){if(markType!=="Year"&&markType!=="Month"){if(isWeekend(ts))return"";}var d=new Date(ts*1000);return d.getFullYear()+"-"+(d.getMonth()<9?"0":"")+(d.getMonth()+1)+"-"+(d.getDate()<10?"0":"")+d.getDate();}},rightPriceScale:{visible:true,borderColor:"#dee2e6"},width:el.clientWidth,height:el.clientHeight});
+  var pts=[];
+  for(var i=0;i<data.length;i++){var t=toTime(data[i].d);if(t!=null)pts.push({time:t,value:data[i].v!=null?data[i].v:data[i].balance});}
+  var ls=chart.addLineSeries({color:color,lineWidth:lineWidth||1.5,priceFormat:{type:"price",precision:2,minMove:0.01}});
+  ls.setData(pts);
+  chart.timeScale().fitContent();
+  _macroCharts[id]=chart;
+}
+
+function drawMacroLineFlow(id,data,color,lineWidth){
+  var el=document.getElementById(id);
+  if(!el||!data||!data.length)return;
+  if(_macroCharts[id])_macroCharts[id].remove();
+  el.innerHTML="";
+  var chart=LightweightCharts.createChart(el,{layout:{background:{type:"solid",color:"#fff"},textColor:"#212529"},grid:{vertLines:{visible:false},horzLines:{color:"#f1f3f5"}},crosshair:{mode:0},timeScale:{visible:true,timeVisible:false,secondsVisible:false,tickMarkFormatter:function(ts,markType,locale){if(markType!=="Year"&&markType!=="Month"){if(isWeekend(ts))return"";}var d=new Date(ts*1000);return d.getFullYear()+"-"+(d.getMonth()<9?"0":"")+(d.getMonth()+1)+"-"+(d.getDate()<10?"0":"")+d.getDate();}},rightPriceScale:{visible:true,borderColor:"#dee2e6"},width:el.clientWidth,height:el.clientHeight});
+  var pts=[];
+  for(var i=0;i<data.length;i++){var t=toTime(data[i].d);if(t!=null)pts.push({time:t,value:data[i].flow!=null?data[i].flow:0});}
+  var ls=chart.addLineSeries({color:color,lineWidth:lineWidth||1.5,priceFormat:{type:"price",precision:2,minMove:0.01}});
+  ls.setData(pts);
+  chart.timeScale().fitContent();
+  _macroCharts[id]=chart;
+}
+
+function drawAllMacroCharts(){
+  var m=P.macro||{};
+  if(m.cpi&&m.cpi.length)drawMacroLine("chart-cpi",m.cpi,"#dc3545",2);
+  if(m.ppi&&m.ppi.length)drawMacroLine("chart-ppi",m.ppi,"#198754",2);
+  if(m.pmi_mfg&&m.pmi_mfg.length)drawMacroLine("chart-pmi_mfg",m.pmi_mfg,"#1a73e8",1);
+  if(m.pmi_non_mfg&&m.pmi_non_mfg.length)drawMacroLine("chart-pmi_non_mfg",m.pmi_non_mfg,"#fd7e14",1);
+  if(m.volume_trend&&m.volume_trend.length)drawMacroLine("chart-volume_trend",m.volume_trend,"#6c757d",1);
+  if(m.margin&&m.margin.length)drawMacroLine("chart-margin",m.margin,"#e83e8c",1);
+  if(m.shibor&&m.shibor.length)drawMacroLine("chart-rate-shibor",m.shibor,"#20c997",3);
+  if(m.m2&&m.m2.length)drawMacroLine("chart-rate-m2",m.m2,"#fd7e14",1);
+  if(m.bond10y&&m.bond10y.length)drawMacroLine("chart-rate-bond10y",m.bond10y,"#6f42c1",2);
+  if(m.etf&&m.etf.length){for(var i=0;i<m.etf.length;i++)drawMacroLineFlow("chart-etf"+i,m.etf[i].data,m.etf[i].color||"#198754",1);}
+  if(m.commodity&&m.commodity.length){for(var i=0;i<m.commodity.length;i++)drawMacroLine("chart-comm"+i,m.commodity[i].data,m.commodity[i].color||"#fd7e14",1);}
+  if(m.lpr&&m.lpr.length){
+    var el=document.getElementById("chart-rate-lpr");
+    if(el&&!el.innerHTML){
+      var chart=LightweightCharts.createChart(el,{layout:{background:{type:"solid",color:"#fff"},textColor:"#212529"},grid:{vertLines:{visible:false},horzLines:{color:"#f1f3f5"}},crosshair:{mode:0},timeScale:{visible:true,timeVisible:false,tickMarkFormatter:function(ts,markType,locale){if(markType!=="Year"&&markType!=="Month"){if(isWeekend(ts))return"";}var d=new Date(ts*1000);return d.getFullYear()+"-"+(d.getMonth()<9?"0":"")+(d.getMonth()+1)+"-"+(d.getDate()<10?"0":"")+d.getDate();}},rightPriceScale:{visible:true,borderColor:"#dee2e6"},width:el.clientWidth,height:el.clientHeight});
+      var pts1=[],pts5=[];
+      for(var i=0;i<m.lpr.length;i++){var t=toTime(m.lpr[i].d);if(t!=null){if(m.lpr[i].v1y!=null)pts1.push({time:t,value:m.lpr[i].v1y});if(m.lpr[i].v5y!=null)pts5.push({time:t,value:m.lpr[i].v5y});}}
+      var l1=chart.addLineSeries({color:"#1a73e8",lineWidth:1.5,priceFormat:{type:"price",precision:2,minMove:0.01}});
+      l1.setData(pts1);
+      var l5=chart.addLineSeries({color:"#6f42c1",lineWidth:1.5,priceFormat:{type:"price",precision:2,minMove:0.01}});
+      l5.setData(pts5);
+      chart.timeScale().fitContent();
+      _macroCharts["chart-rate-lpr"]=chart;
+    }
+  }
+}
+
+// ===== CUSTOM INDICATORS =====
+function renderCustomIndicators(){
+  var rows="";
+  for(var i=0;i<state.customIndicators.length;i++){
+    var ind=state.customIndicators[i];
+    rows+='<tr><td><b>'+ind.name+'</b></td><td style="font-family:monospace;font-weight:600">'+num(ind.price,2)+' '+ind.unit+'</td><td style="color:'+(ind.chg>=0?'#dc3545':'#198754')+'">'+pctSign(ind.chg)+'</td><td style="font-size:10px;color:var(--muted)">'+ind.updated+'</td><td style="font-size:10px">'+ind.source+'</td><td><span class="btn danger sm" onclick="removeIndicator('+i+')">删除</span></td></tr>';
+  }
+  var tb=document.getElementById("custom-indicator-body");
+  if(tb)tb.innerHTML=rows||'<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted)">暂无自定义指标，点击"价格指标"添加</td></tr>';
+}
+function showIndicatorManager(){
+  var ex=document.getElementById("modal-overlay");if(ex)ex.remove();
+  var sh="";
+  for(var i=0;i<state.customIndicators.length;i++){
+    var ind=state.customIndicators[i];
+    sh+='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #eee;font-size:11px"><span><b>'+(i+1)+'.</b> '+ind.name+' <span style="color:var(--muted)">'+ind.source+' '+ind.unit+'</span></span><span class="btn danger sm" onclick="removeIndicator('+i+')">删除</span></div>';
+  }
+  var ov=document.createElement("div");ov.className="modal-overlay";ov.id="modal-overlay";
+  ov.innerHTML='<div class="modal-box"><div class="modal-title"><span>自定义价格指标</span><span style="cursor:pointer;font-size:18px" onclick="this.closest(\'.modal-overlay\').remove()">&times;</span></div><div class="modal-body"><p style="font-size:10px;color:var(--muted);margin-bottom:8px">添加商品或原材料价格指标</p><div style="display:flex;gap:6px;flex-wrap:wrap"><input id="ind-name" placeholder="指标名称" style="flex:2;min-width:120px"><input id="ind-code" placeholder="代码/关键词" style="flex:1;min-width:100px"><input id="ind-unit" placeholder="单位" style="width:90px"><select id="ind-source"><option value="东方财富">东方财富</option><option value="生意社">生意社</option><option value="LME">LME</option><option value="DRAMeXchange">DRAMeXchange</option><option value="自定义URL">自定义URL</option></select><button class="btn primary" onclick="addIndicator()">添加</button></div><div style="margin-top:8px;max-height:200px;overflow-y:auto">'+(sh||'<div style="color:var(--muted);font-size:10px;padding:8px">暂无自定义指标</div>')+'</div></div></div>';
+  ov.addEventListener("click",function(e){if(e.target===ov)ov.remove();});document.body.appendChild(ov);
+}
+function addIndicator(){
+  var name=document.getElementById("ind-name").value.trim(),code=document.getElementById("ind-code").value.trim(),unit=document.getElementById("ind-unit").value.trim(),source=document.getElementById("ind-source").value;
+  if(!name){alert("请输入指标名称");return;}
+  state.customIndicators.push({name:name,code:code||name,unit:unit||"",source:source,price:0,chg:0,updated:"--"});
+  saveLocal("cockpit_v12_indicators",state.customIndicators);
+  renderCustomIndicators();document.getElementById("modal-overlay").remove();toast("已添加",name,"bot");
+}
+function removeIndicator(i){
+  if(!confirm("删除 "+state.customIndicators[i].name+"？"))return;
+  state.customIndicators.splice(i,1);saveLocal("cockpit_v12_indicators",state.customIndicators);
+  renderCustomIndicators();document.getElementById("modal-overlay")&&document.getElementById("modal-overlay").remove();
+}
+
+// ===== LIVE QUOTES =====
+var _clockTimer=null,_liveTimer=null;
+function updateClock(){
+  var n=new Date();document.getElementById("clock").textContent=n.getHours().toString().padStart(2,"0")+":"+n.getMinutes().toString().padStart(2,"0")+":"+n.getSeconds().toString().padStart(2,"0");
+}
+function startLiveQuotes(){
+  if(_clockTimer)clearInterval(_clockTimer);if(_liveTimer)clearInterval(_liveTimer);
+  updateClock();_clockTimer=setInterval(updateClock,1000);
+  function poll(){
+    if(!state.symbols.length)return;
+    var secids=[];
+    for(var i=0;i<state.symbols.length;i++)secids.push((state.symbols[i].market==="sh"?"1.":"0.")+state.symbols[i].code);
+    var url="https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f2,f3,f12,f14,f15,f16,f17,f18&secids="+secids.join(",")+"&_="+Date.now();
+    fetch(url).then(function(r){return r.json();}).then(function(d){
+      var list=(d&&d.data&&d.data.diff)||[];
+      for(var i=0;i<list.length;i++){
+        var item=list[i],code=item.f12;if(!code||!P.rt[code])continue;
+        var pct=item.f3!=null?parseFloat(item.f3):null,price=item.f2!=null?parseFloat(item.f2):null;
+        if(price!=null){P.rt[code].price=price;P.rt[code].pct=pct!=null?pct:0;}
+        if(item.f17!=null)P.rt[code].open=parseFloat(item.f17);
+        if(item.f15!=null)P.rt[code].high=parseFloat(item.f15);
+        if(item.f16!=null)P.rt[code].low=parseFloat(item.f16);
+        if(item.f18!=null)P.rt[code].prev_close=parseFloat(item.f18);
+      }
+    }).catch(function(){});
+  }
+  poll();_liveTimer=setInterval(poll,5000);
+}
+
+// ===== TOAST =====
+function toast(title,detail,type){
+  var tc=document.getElementById("toasts"),el=document.createElement("div");
+  el.className="toast "+type;el.innerHTML='<b>'+title+'</b> '+detail;
+  tc.appendChild(el);setTimeout(function(){el.remove();},5000);
+}
+
+// ===== AUTO ALERT CHECK =====
+var _alertCheckTimer=null;
+function startAlertMonitor(){
+  if(_alertCheckTimer)clearInterval(_alertCheckTimer);
+  _alertCheckTimer=setInterval(function(){
+    var all=allDivergence(90),newCnt=0;
+    for(var i=0;i<all.length;i++){var s=all[i];if(!state.alertSettings.saw[s.code+"|"+s.period+"|"+s.type+"|"+s.date])newCnt++;}
+    if(newCnt>0&&state.alertSettings.popup){
+      var lastPopup=loadLocal("cockpit_v12_last_popup",0);
+      if(Date.now()-lastPopup>300000){
+        saveLocal("cockpit_v12_last_popup",Date.now());
+        showDivergenceAlert();
+      }
+    }
+  },60000);
+}
+
+// ===== INIT =====
+function init(){
+  try{
+    loadAlertSettings();loadCustomIndicators();initSymbols();
+    renderDivergenceTable();updateAlertBadge();
+    document.getElementById("status-bar").textContent=P.ts||"--";
+    startLiveQuotes();startAlertMonitor();
+    var all=allDivergence(90),newCnt=0;
+    for(var i=0;i<all.length;i++){var s=all[i];if(!state.alertSettings.saw[s.code+"|"+s.period+"|"+s.type+"|"+s.date])newCnt++;}
+    if(newCnt>0&&state.alertSettings.popup){setTimeout(showDivergenceAlert,1500);}
+    document.getElementById("status-bar").textContent=(P.ts||"ok")+" - 加载完成";
+  }catch(e){
+    document.getElementById("status-bar").textContent="初始化错误: "+e.message;
+    console.error("INIT ERROR:",e);
+  }
+}
+
+// Login is required first; init() runs after doLogin
+</script>
+</body>
+</html>
