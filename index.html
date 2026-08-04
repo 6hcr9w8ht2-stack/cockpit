@@ -539,6 +539,17 @@ function renderMacro(){
   document.getElementById("macro-comm").innerHTML=commHtml||'<div class="loading">商品数据收集中...</div>';
   
   setTimeout(function(){drawAllMacroCharts();},200);
+  // Add live commodity price spans after render
+  setTimeout(function(){
+    var comms=document.querySelectorAll("#macro-comm .macro-card");
+    for(var i=0;i<comms.length;i++){
+      var title=comms[i].querySelector(".mc-title span:last-child");
+      if(title&&!comms[i].querySelector(".live-comm-price")){
+        var sp=document.createElement("span");sp.className="live-comm-price";sp.id="live-comm-comm"+i;sp.style.cssText="font-size:10px;color:var(--muted);margin-left:6px";
+        title.appendChild(sp);
+      }
+    }
+  },500);
   
   var nbr=P.nbr||{};
   var bondIdx=nbr.bond_idx||{},sectorIdx=nbr.sector_idx||{};
@@ -846,7 +857,7 @@ function startAlertMonitor(){
 
 
 // ===== LIVE POLLER: Bond/Sector/ETF via qt.gtimg.cn =====
-var _liveIdxCodes=["sh000012","sz399986","sz399396","sz399989","sh000016"];
+var _liveIdxCodes=["000012","399986","399396","399989","000016"];
 var _liveEftCodes=["sh510050","sh510300","sh510500","sh588000","sz159919","sh512100"];
 var _liveEftMatch={"sh510050":"etf0","sh510300":"etf1","sh510500":"etf2","sh588000":"etf3","sz159919":"etf4","sh512100":"etf5"};
 
@@ -861,7 +872,7 @@ function pollLiveIdxAndEtf(){
         var ln=lines[i];if(!ln||ln.indexOf("=")<0)continue;
         var m=ln.match(/hq_str_(\w+)=\"([^\"]+)\"/);
         if(!m)continue;
-        var code=m[1],parts=m[2].split(",");
+        var raw=m[1],parts=m[2].split(","),code=raw.replace(/^(sh|sz)/,"");
         if(parts.length<5)continue;
         var price=parseFloat(parts[3]),prev=parseFloat(parts[2]),name=parts[0],
             pct=prev?((price-prev)/prev*100):0;
@@ -883,6 +894,32 @@ function pollLiveIdxAndEtf(){
 // Poll every 10s; first fetch after 3s
 setTimeout(pollLiveIdxAndEtf,3000);
 setInterval(pollLiveIdxAndEtf,10000);
+// Also poll commodity futures real-time
+(function(){
+  var commCodes=["nf_AU0","nf_AG0","nf_CU0","nf_AL0","nf_SC0"];
+  var commMatch={"nf_AU0":"comm0","nf_AG0":"comm1","nf_CU0":"comm2","nf_AL0":"comm3","nf_SC0":"comm4"};
+  setInterval(function(){
+    fetch("http://hq.sinajs.cn/list="+commCodes.join(","))
+      .then(function(r){return r.text();})
+      .then(function(txt){
+        var lines=txt.split("\n");
+        for(var i=0;i<lines.length;i++){
+          var ln=lines[i],m=ln.match(/hq_str_(\w+)=\"([^\"]+)\"/);
+          if(!m)continue;
+          var code=m[1],parts=m[2].split(",");
+          if(parts.length<4)continue;
+          var price=parseFloat(parts[3]),prev=parseFloat(parts[2]),
+              name=parts[0],pct=prev?((price-prev)/prev*100):0;
+          var cid=commMatch[code];
+          if(cid){
+            var el=document.getElementById("live-comm-"+cid);
+            if(el)el.textContent=price.toFixed(2)+(unit||"")+" "+(pct>=0?"+":"")+pct.toFixed(2)+"%";
+          }
+        }
+      }).catch(function(){});
+  },10000);
+  setTimeout(function(){/* trigger once */},3000);
+})();
 
 
 // ===== INIT =====
