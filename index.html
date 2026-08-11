@@ -1561,4 +1561,24 @@ function updateStatus(msg){
 function toast(msg,title,type){
   var tc=document.getElementById('toasts');
   if(!tc)return;
-  var t=document.creat
+function toast(msg,title,type){
+  var tc=document.getElementById('toasts');
+  if(!tc)return;
+  var t=document.createElement('div');
+  t.className='toast'+(type?' '+type:'');
+  t.innerHTML=(title?('<b>'+title+'</b> '):'')+msg;
+  tc.appendChild(t);
+  setTimeout(function(){t.remove();},4000);
+}
+
+// Start
+document.addEventListener('DOMContentLoaded',function(){
+  if(localStorage.getItem('cockpit_v12_logged_in')==='1'){
+    document.getElementById('login-overlay').style.display='none';
+    try{init();}catch(e){alert('初始化失败: '+e.message);}
+  }
+});
+
+</script>
+</body>
+</html>
