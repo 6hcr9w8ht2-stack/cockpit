@@ -245,19 +245,26 @@ function logout(){
 
 // ===== SYMBOL MGMT =====
 function initSymbols(){
-  var fromLS=loadLocal("cockpit_v12_symbols_v2",null);
-  if(fromLS&&fromLS.length>0){state.symbols=fromLS;}
-  else{
-    var defaults=[];
-    if(P.symbols)defaults=P.symbols;
-    else{
-      var codes=Object.keys(P.kl||{});if(!codes.length)codes=["000001","399001","399006","000688"];
-      for(var i=0;i<codes.length;i++){
-        var c=codes[i],q=P.rt[c]||{};
-        defaults.push({code:c,market:c.startsWith("6")?"sh":"sz",name:q.name||c});
-      }
+  // Version check: if payload version changed, reset symbols to defaults
+  var payloadVersion = P.symbols ? P.symbols.map(function(s){return s.code;}).join(",") : "";
+  var storedVersion = loadLocal("cockpit_symbol_version", "");
+  if (storedVersion !== payloadVersion) {
+    // Version changed or first visit — use payload defaults, keep user-added symbols
+    var payloadCodes = {};
+    if (P.symbols) for (var i=0;i<P.symbols.length;i++) payloadCodes[P.symbols[i].code]=1;
+    var oldSyms = loadLocal("cockpit_v12_symbols_v2", []) || [];
+    // Keep old symbols that are NOT in payload (user-added), plus all payload symbols
+    var userAdded = [];
+    for (var j=0;j<oldSyms.length;j++) {
+      if (!payloadCodes[oldSyms[j].code]) userAdded.push(oldSyms[j]);
     }
-    state.symbols=defaults;
+    state.symbols = (P.symbols||[]).concat(userAdded);
+    saveLocal("cockpit_symbol_version", payloadVersion);
+    saveLocal("cockpit_v12_symbols_v2", state.symbols);
+  } else {
+    var fromLS=loadLocal("cockpit_v12_symbols_v2",null);
+    if(fromLS&&fromLS.length>0){state.symbols=fromLS;}
+    else{state.symbols=P.symbols||[];saveLocal("cockpit_v12_symbols_v2",state.symbols);}
   }
   state.activeIdx=0;
   // Restore K-line from localStorage for symbols not in payload
@@ -1543,27 +1550,4 @@ function _syncMissingKlines(){
     updateStatus('加载 ' + missing.length + ' 只自选标的 K 线...');
     var pending=missing.length;
     function checkDone(){pending--;if(pending<=0){updateStatus('就绪');resolve();}}
-    for(var i=0;i<missing.length;i++){
-      var s=missing[i];
-      _fetchAllPeriodsKline(s.code,s.market,s.name,checkDone);
-    }
-    setTimeout(function(){if(pending>0){updateStatus('就绪');resolve();}},12000);
-  });
-}
-
-function updateStatus(msg){
-  var el=document.getElementById('status-bar');
-  if(el)el.textContent='最后更新: '+new Date().toLocaleString()+' | '+msg;
-}
-
-// Start
-document.addEventListener('DOMContentLoaded',function(){
-  if(localStorage.getItem('cockpit_v12_logged_in')==='1'){
-    document.getElementById('login-overlay').style.display='none';
-    try{init();}catch(e){alert('初始化失败: '+e.message);}
-  }
-});
-
-</script>
-</body>
-</html>
+    for(
