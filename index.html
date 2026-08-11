@@ -1399,7 +1399,6 @@ function startAlertMonitor(){
   },60000);
 }
 
-
 // ===== INIT =====
 async function init(){
   try{
@@ -1413,15 +1412,10 @@ async function init(){
 function _recomputeAllDivergence(){
   var PERIODS=["15","30","60","240","1200"];
   for(var i=0;i<state.symbols.length;i++){
-    var code=state.symbols[i].code;
-    var kls=P.kl[code];
-    if(!kls)continue;
+    var code=state.symbols[i].code;var kls=P.kl[code];if(!kls)continue;
     for(var pi=0;pi<PERIODS.length;pi++){
-      var per=PERIODS[pi];
-      var bars=kls[per];
-      if(bars&&bars.length>=30){
-        _computeDivergence(code,bars,per);
-      }
+      var per=PERIODS[pi];var bars=kls[per];
+      if(bars&&bars.length>=30){_computeDivergence(code,bars,per);}
     }
   }
 }
@@ -1431,14 +1425,12 @@ function _syncMissingKlines(){
     var missing=[];
     for(var i=0;i<state.symbols.length;i++){
       var s=state.symbols[i],kl=P.kl[s.code];
-      if(!kl||!kl["240"]||!kl["240"].length||!kl["15"]||!kl["15"].length){
-        missing.push(s);
-      }
+      if(!kl||!kl["240"]||!kl["240"].length||!kl["15"]||!kl["15"].length){missing.push(s);}
     }
     if(!missing.length){resolve();return;}
     updateStatus('加载 '+missing.length+' 只标的数据...');
     var pending=missing.length;
-    function checkDone(){pending--;if(pending<=0){resolve();}}
+    function checkDone(){pending--;if(pending<=0)resolve();}
     for(var i=0;i<missing.length;i++){
       _fetchAllPeriodsKline(missing[i].code,missing[i].market,missing[i].name,checkDone);
     }
@@ -1451,7 +1443,6 @@ function updateStatus(msg){
   if(el)el.textContent=new Date().toLocaleString()+' | '+msg;
 }
 
-// Start
 document.addEventListener('DOMContentLoaded',function(){
   if(localStorage.getItem('cockpit_v12_logged_in')==='1'){
     document.getElementById('login-overlay').style.display='none';
@@ -1461,4 +1452,4 @@ document.addEventListener('DOMContentLoaded',function(){
 
 </script>
 </body>
-</ht
+</html>
