@@ -1445,6 +1445,12 @@ function updateStatus(msg){
   var el=document.getElementById('status-bar');
   if(el)el.textContent=new Date().toLocaleString()+' | '+msg;
 }
-
 document.addEventListener('DOMContentLoaded',function(){
   if(localStorage.getItem('cockpit_v12_logged_in')==='1'){
+    document.getElementById('login-overlay').style.display='none';
+    try{init();}catch(e){alert('初始化失败: '+e.message);}
+  }
+});
+</script>
+</body>
+</html>
