@@ -219,12 +219,12 @@ function saveLocal(key,val){try{localStorage.setItem(key,JSON.stringify(val));}c
 
 // ===== LOGIN =====
 // 【在这里管理账号密码】格式: "用户名": "密码"
-// 加人：复制一行，改用户名和密码；删人：删掉对应行
 var ACCOUNTS={
-  "admin":"cockpit2026",
-  "trader1":"trade888",
-  "trader2":"trade666",
-  "viewer":"view123"
+  "admin":"admin2026",
+  "manager":"mgr2026",
+  "guest":"guest123",
+  "user1":"user111",
+  "user2":"user222"
 };
 function doLogin(){
   var u=document.getElementById("login-user").value.trim();
@@ -1587,3 +1587,4 @@ document.getElementById('login-overlay').style.display='none';
 </script>
 </body>
 </html>
+                                                             
