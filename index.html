@@ -1579,4 +1579,11 @@ function toast(msg,title,type){
 // Start
 document.addEventListener('DOMContentLoaded',function(){
   if(localStorage.getItem('cockpit_v12_logged_in')==='1'){
-    document.getElementB
+document.getElementById('login-overlay').style.display='none';
+    try{init();}catch(e){alert('初始化失败: '+e.message);}
+  }
+});
+
+</script>
+</body>
+</html>
