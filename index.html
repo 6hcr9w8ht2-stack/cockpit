@@ -758,7 +758,7 @@ function _fetchAllPeriodsKline(code,mkt,name,callback){
     attempt=attempt||1;
     var url;
     if(per.type==="min"){
-      url="https://ifzq.gtimg.cn/appstock/app/kline/mkline?param="+prefix+code+","+per.api+",,500";
+      url="https://web.ifzq.gtimg.cn/appstock/app/kline/mkline?param="+prefix+code+","+per.api+",,500";
     } else {
       url="https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param="+prefix+code+","+per.api+",,,500,qfq";
     }
@@ -1461,4 +1461,4 @@ document.addEventListener('DOMContentLoaded',function(){
 
 </script>
 </body>
-</html>
+</ht
