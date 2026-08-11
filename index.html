@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>A股操盘驾驶舱 v12.1</title>
+<title>A股操盘驾驶舱 v12</title>
 <style>
 :root{color-scheme:light;--bg:#fff;--panel:#f8f9fa;--border:#dee2e6;--text:#212529;--muted:#6c757d;--accent:#1a73e8;--up:#dc3545;--down:#198754;--warn:#f0ad4e;--card-shadow:0 1px 3px rgba(0,0,0,.08)}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -138,7 +138,7 @@ tr.selected{background:#d2e3fc!important}
 <div class="tab-pane" id="pane-divergence">
 <div class="main-area">
 <div class="panel"><div class="panel-title"><span>背离信号一览</span><span style="font-size:10px;color:var(--muted)">点击行查看K线图</span></div>
-<div class="table-wrap"><table><thead><tr><th>标的</th><th>15m</th><th>30m</th><th>60m</th><th>日线</th><th>周线</th><th>次数</th></tr></thead><tbody id="divergence-body"></tbody></table></div></div>
+<div class="table-wrap"><table><thead><tr><th>标的</th><th>15m</th><th>30m</th><th>60m</th><th>日线</th><th>周线</th><th>背离次数</th><th>最近信号</th></tr></thead><tbody id="divergence-body"></tbody></table></div></div>
 <div class="chart-detail" id="chart-detail">
 <div class="panel-title" id="chart-title"></div>
 <div class="period-row" id="chart-periods"></div>
@@ -398,12 +398,12 @@ function renderDivergenceTable(){
         if(!latestDate||pinfo.date>latestDate) latestDate=pinfo.date;
         var tagCls=pinfo.type==="top"?"tag top":"tag bot";
         var tagTxt=pinfo.type==="top"?"顶":"底";
-        cells+='<td onclick="showChartDetail(\''+code+'\',\''+p+'\')" style="cursor:pointer"><span class="'+tagCls+'">'+tagTxt+'</span></td>';
+        cells+='<td onclick="showChartDetail(\''+code+'\',\''+p+'\')" style="cursor:pointer"><span class="'+tagCls+'">'+tagTxt+'</span> <span style="font-size:9px;color:var(--muted)">'+pinfo.date+'</span></td>';
       }else{
         cells+='<td style="color:var(--muted);font-size:10px">―</td>';
       }
     }
-    rows+='<tr><td style="cursor:pointer;color:var(--accent);text-decoration:underline" onclick="showChartDetail(\''+code+'\',\'240\')"><b>'+c.name+'</b></td>'+cells+'<td style="font-weight:600;color:'+(sigCount>0?'var(--accent)':'var(--muted)')+'">'+sigCount+'</td></tr>';
+    rows+='<tr><td style="cursor:pointer;color:var(--accent);text-decoration:underline" onclick="showChartDetail(\''+code+'\',\'240\')"><b>'+c.name+'</b></td>'+cells+'<td style="font-weight:600;color:'+(sigCount>0?'var(--accent)':'var(--muted)')+'">'+sigCount+'</td><td style="font-size:10px;color:var(--muted)">'+(latestDate||'―')+'</td></tr>';
   }
   var tb=document.getElementById("divergence-body");if(tb)tb.innerHTML=rows;
 }
@@ -502,7 +502,7 @@ function drawKlineChart(code,bars,period){
       sigTimes.push(t);
       sigTypes.push(s.type);
       sigPrices.push(s.type==="top"?s.price_hi:s.price_lo);
-      sigLabels.push((s.type==="top"?"▼":"▲")+(s.type==="top"?"顶":"底")+s.date.slice(5,10));
+      sigLabels.push((s.type==="top"?"▼":"▲")+(s.type==="top"?"顶":"底"));
     }
   }
   
@@ -1563,4 +1563,4 @@ document.getElementById('login-overlay').style.display='none';
 </script>
 </body>
 </html>
-                                                                                                                                                                                                                                                         
+                                                                                                  
