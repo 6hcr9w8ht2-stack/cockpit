@@ -260,6 +260,18 @@ function initSymbols(){
     state.symbols=defaults;
   }
   state.activeIdx=0;
+  // Restore K-line from localStorage for symbols not in payload
+  for(var si=0;si<state.symbols.length;si++){
+    var sc=state.symbols[si].code;
+    if(!P.kl[sc])P.kl[sc]={};
+    for(var sp=0;sp<["15","30","60","240","1200"].length;sp++){
+      var sper=["15","30","60","240","1200"][sp];
+      if(!P.kl[sc][sper]||!P.kl[sc][sper].length){
+        var saved=loadLocal("cockpit_kl_"+sc+"_"+sper,null);
+        if(saved&&saved.length){P.kl[sc][sper]=saved;}
+      }
+    }
+  }
   var sel=document.getElementById("symbol-select");
   if(!sel)return;
   sel.innerHTML="";
@@ -779,6 +791,8 @@ function _fetchAllPeriodsKline(code,mkt,name,callback){
       if(!bars.length)throw new Error("no valid bars");
       if(!P.kl[code])P.kl[code]={};
       P.kl[code][per.p]=bars;
+      // Save to localStorage so data survives page reload
+      try{saveLocal("cockpit_kl_"+code+"_"+per.p,bars);}catch(e){}
       loaded[per.p]=true;
       if(bars.length>=20)_computeDivergence(code,bars,per.p);
       completed++;
@@ -816,7 +830,7 @@ function _minPct(period){
 function _findPeaks(arr,w){var r=[];for(var i=w;i<arr.length-w;i++){var ok=true;for(var j=i-w;j<=i+w;j++){if(j!==i&&arr[j]>=arr[i]){ok=false;break;}}if(ok)r.push(i);}return r;}
 function _findValleys(arr,w){var r=[];for(var i=w;i<arr.length-w;i++){var ok=true;for(var j=i-w;j<=i+w;j++){if(j!==i&&arr[j]<=arr[i]){ok=false;break;}}if(ok)r.push(i);}return r;}
 function _computeDivergence(code,bars,period){
-  if(!bars||bars.length<60)return;
+  if(!bars||bars.length<30)return;
   var windows;
   if(period==="15") windows=[1,2,3,5,10,20,30];
   else if(period==="30") windows=[1,2,3,5,10,15,30];
@@ -1544,23 +1558,3 @@ function updateStatus(msg){
 
 function toast(msg,title,type){
   var tc=document.getElementById('toasts');
-  if(!tc)return;
-  var t=document.createElement('div');
-  t.className='toast'+(type?' '+type:'');
-  t.innerHTML=(title?('<b>'+title+'</b> '):'')+msg;
-  tc.appendChild(t);
-  setTimeout(function(){t.remove();},4000);
-}
-
-// Start
-document.addEventListener('DOMContentLoaded',function(){
-  if(localStorage.getItem('cockpit_v12_logged_in')==='1'){
-document.getElementById('login-overlay').style.display='none';
-    try{init();}catch(e){alert('初始化失败: '+e.message);}
-  }
-});
-
-</script>
-</body>
-</html>
-                                                                                                
