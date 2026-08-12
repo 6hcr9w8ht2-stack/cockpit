@@ -1024,7 +1024,7 @@ document.getElementById("macro-comm").innerHTML=commHtml||'<div class="loading">
     // Forex
     if(mm.forex&&mm.forex.length){
       for(var fi=0;fi<mm.forex.length;fi++){
-        if(mm.foreex[fi].data)drawSimpleLine("chart-forex"+fi,mm.foreex[fi].data,mm.foreex[fi].color||"#1a73e8");
+        if(mm.forex[fi].data)drawSimpleLine("chart-forex"+fi,mm.forex[fi].data,mm.forex[fi].color||"#1a73e8");
       }
     }
     // ETF
