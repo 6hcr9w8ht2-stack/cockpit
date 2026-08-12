@@ -971,16 +971,16 @@ document.getElementById("macro-comm").innerHTML=commHtml||'<div class="loading">
     // Draw all macro charts
   setTimeout(function(){
     var mm=P.macro||{};
-    if(mm.cpi&&mm.cpi.length)drawMacroLine("chart-cpi",mm.cpi,"#dc3545",2);
-    if(mm.ppi&&mm.ppi.length)drawMacroLine("chart-ppi",mm.ppi,"#198754",2);
-    if(mm.pmi_mfg&&mm.pmi_mfg.length)drawMacroLine("chart-pmi_mfg",mm.pmi_mfg,"#1a73e8",1);
-    if(mm.pmi_non_mfg&&mm.pmi_non_mfg.length)drawMacroLine("chart-pmi_non_mfg",mm.pmi_non_mfg,"#fd7e14",1);
-    if(mm.social_retail&&mm.social_retail.length)drawMacroLine("chart-social_retail",mm.social_retail,"#fd7e14",1);
-    if(mm.volume_trend&&mm.volume_trend.length)drawMacroLine("chart-volume_trend",mm.volume_trend,"#6c757d",1);
-    if(mm.margin&&mm.margin.length)drawMacroLine("chart-margin",mm.margin,"#e83e8c",1);
-    if(mm.shibor&&mm.shibor.length)drawMacroLine("chart-rate-shibor",mm.shibor,"#20c997",3);
-    if(mm.m2&&mm.m2.length)drawMacroLine("chart-rate-m2",mm.m2,"#fd7e14",1);
-    if(mm.bond10y&&mm.bond10y.length)drawMacroLine("chart-rate-bond10y",mm.bond10y,"#6f42c1",2);
+    if(mm.cpi&&mm.cpi.length)drawSimpleLine("chart-cpi",mm.cpi,"#dc3545",2);
+    if(mm.ppi&&mm.ppi.length)drawSimpleLine("chart-ppi",mm.ppi,"#198754",2);
+    if(mm.pmi_mfg&&mm.pmi_mfg.length)drawSimpleLine("chart-pmi_mfg",mm.pmi_mfg,"#1a73e8",1);
+    if(mm.pmi_non_mfg&&mm.pmi_non_mfg.length)drawSimpleLine("chart-pmi_non_mfg",mm.pmi_non_mfg,"#fd7e14",1);
+    if(mm.social_retail&&mm.social_retail.length)drawSimpleLine("chart-social_retail",mm.social_retail,"#fd7e14",1);
+    if(mm.volume_trend&&mm.volume_trend.length)drawSimpleLine("chart-volume_trend",mm.volume_trend,"#6c757d",1);
+    if(mm.margin&&mm.margin.length)drawSimpleLine("chart-margin",mm.margin,"#e83e8c",1);
+    if(mm.shibor&&mm.shibor.length)drawSimpleLine("chart-rate-shibor",mm.shibor,"#20c997",3);
+    if(mm.m2&&mm.m2.length)drawSimpleLine("chart-rate-m2",mm.m2,"#fd7e14",1);
+    if(mm.bond10y&&mm.bond10y.length)drawSimpleLine("chart-rate-bond10y",mm.bond10y,"#6f42c1",2);
     // Commodities merged
     var allComms=[];
     if(mm.commodity&&mm.commodity.length)allComms=allComms.concat(mm.commodity);
@@ -988,16 +988,16 @@ document.getElementById("macro-comm").innerHTML=commHtml||'<div class="loading">
     if(mm.commodity3&&mm.commodity3.length)allComms=allComms.concat(mm.commodity3);
     for(var ci=0;ci<allComms.length&&ci<15;ci++){
       var elc=document.getElementById("chart-comm"+ci);
-      if(elc&&allComms[ci].data)drawMacroLine("chart-comm"+ci,allComms[ci].data,allComms[ci].color||"#fd7e14",1);
+      if(elc&&allComms[ci].data)drawSimpleLine("chart-comm"+ci,allComms[ci].data,allComms[ci].color||"#fd7e14",1);
     }
     // Forex
-    if(mm.forex&&mm.forex.length){for(var fi=0;fi<mm.forex.length;fi++)drawMacroLine("chart-forex"+fi,mm.forex[fi].data,mm.forex[fi].color||"#1a73e8",4);}
+    if(mm.forex&&mm.forex.length){for(var fi=0;fi<mm.forex.length;fi++)drawSimpleLine("chart-forex"+fi,mm.forex[fi].data,mm.forex[fi].color||"#1a73e8",4);}
     // ETF curves
     if(mm.national_etf&&mm.national_etf.length){
       var ec=["#dc3545","#1a73e8","#fd7e14","#6f42c1","#198754","#20c997"];
       for(var ei=0;ei<mm.national_etf.length;ei++){
         var efh=mm.national_etf[ei].flow_history||[];
-        if(efh.length>1)drawMacroLine("chart-etf"+ei,efh,ec[ei%ec.length],1);
+        if(efh.length>1)drawSimpleLine("chart-etf"+ei,efh,ec[ei%ec.length],1);
       }
     }
   },300);
@@ -1071,6 +1071,40 @@ function _addLatestLabel(el,chart,ls,data,color){
   chart.timeScale().subscribeVisibleLogicalRangeChange(_sched);
   chart.timeScale().subscribeVisibleTimeRangeChange(_sched);
 }
+
+// Simple SVG line chart - always works, no external dependencies
+function drawSimpleLine(id,data,color){
+  var el=document.getElementById(id);
+  if(!el||!data||!data.length)return;
+  var w=el.clientWidth||310,h=el.clientHeight||180;
+  var vals=data.map(function(x){return x.v!=null?x.v:(x.balance||0);});
+  var minV=Math.min.apply(null,vals),maxV=Math.max.apply(null,vals);
+  if(minV===maxV){minV-=1;maxV+=1;}
+  var range=maxV-minV;
+  var n=data.length;
+  var pts=vals.map(function(v,i){
+    var x=Math.round(i/(n-1)*(w-20))+10;
+    var y=Math.round(h-15-(v-minV)/range*(h-30));
+    return x+","+y;
+  }).join(" ");
+  var lastV=vals[n-1];
+  var lastD=data[n-1].d||"";
+  var svg='<svg width="100%" height="'+h+'" viewBox="0 0 '+w+' '+h+'">';
+  // Area fill
+  svg+='<polygon points="10,'+(h-15)+' '+pts+' '+(w-10)+','+(h-15)+'" fill="'+color+'15"/>';
+  // Line
+  svg+='<polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.5"/>';
+  // Last point dot
+  var lastX=Math.round(w-20)+10;
+  var lastY=Math.round(h-15-(lastV-minV)/range*(h-30));
+  svg+='<circle cx="'+lastX+'" cy="'+lastY+'" r="3" fill="'+color+'"/>';
+  // Last value label
+  svg+='<text x="'+(lastX-5)+'" y="'+(lastY-8)+'" text-anchor="end" font-size="11" font-weight="700" fill="'+color+'">'+lastV.toFixed(2)+'</text>';
+  svg+='<text x="10" y="'+(h-3)+'" font-size="9" fill="#6c757d">'+lastD+'</text>';
+  svg+='</svg>';
+  el.innerHTML=svg;
+}
+
 function drawMacroLine(id,data,color,lineWidth){
   var el=document.getElementById(id);
   if(!el||!data||!data.length)return;
