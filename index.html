@@ -926,7 +926,7 @@ document.getElementById("macro-rates").innerHTML=ratesHtml||'<div class="loading
   var etfHtml="";
   var etfList=m.national_etf||[];
   if(etfList.length){
-    etfHtml+='<div class="macro-grid" style="margin-bottom:8px">';
+    etfHtml+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">';
     var ec=["#dc3545","#1a73e8","#fd7e14","#6f42c1","#198754","#20c997"];
     for(var i=0;i<etfList.length;i++){
       var e=etfList[i];
