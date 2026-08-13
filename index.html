@@ -914,12 +914,6 @@ function renderMacro(){
     var spCol=lastSP>=0?"#dc3545":"#198754";
     ratesHtml+='<div class="macro-card" style="grid-column:span 2;min-width:620px;cursor:pointer" onclick="showMacroFullCNUS()"><div class="mc-title"><span>中美国债10Y收益率与利差</span><span style="font-weight:700">CN:'+lastCN+'% US:'+lastUS+'% 利差:<span style="color:'+spCol+'">'+lastSP+'%</span></span></div><div class="macro-chart" id="chart-cnus_combo" style="height:200px"></div></div>';
   }
-  // Chart 2: US-JP + US-EU spread (big card, span 2)
-  if((m.us_jp_spread&&m.us_jp_spread.length)||(m.us_eu_spread&&m.us_eu_spread.length)){
-    var jpVal=m.us_jp_spread&&m.us_jp_spread.length?m.us_jp_spread[m.us_jp_spread.length-1].v.toFixed(2):"--";
-    var euVal=m.us_eu_spread&&m.us_eu_spread.length?m.us_eu_spread[m.us_eu_spread.length-1].v.toFixed(2):"--";
-    ratesHtml+='<div class="macro-card" style="grid-column:span 2;min-width:620px;cursor:pointer" onclick="showMacroFullUSEU()"><div class="mc-title"><span>美日/美欧 10Y收益率利差</span><span style="font-weight:700">美日:'+jpVal+'% 美欧:'+euVal+'%</span></div><div class="macro-chart" id="chart-useu_combo" style="height:200px"></div></div>';
-  }
 document.getElementById("macro-rates").innerHTML=ratesHtml||'<div class="loading">利率数据收集中...</div>';
   
   var em=m.etf_monitor||[];
@@ -1196,36 +1190,7 @@ function drawAllMacroCharts(){
       _macroCharts["chart-cnus_combo"]=comboChart;
     }
   }
-  // US-JP + US-EU combo chart (single bar per day, using latest values)
-  if(m.us_jp_spread&&m.us_jp_spread.length){
-    var jpEl=document.getElementById("chart-useu_combo");
-    if(jpEl&&!jpEl.innerHTML){
-      var _w2=jpEl.clientWidth||620,_h2=jpEl.clientHeight||200;
-      var jpChart=LightweightCharts.createChart(jpEl,{layout:{background:{type:"solid",color:"#fff"},textColor:"#212529"},grid:{vertLines:{visible:false},horzLines:{color:"#f1f3f5"}},crosshair:{mode:0},timeScale:{visible:true,timeVisible:false},rightPriceScale:{visible:true,borderColor:"#dee2e6"},width:_w2,height:_h2});
-      // Show CN-US spread history as background + US-JP/EU as latest bars
-      var jpHist=[];
-      if(m.cn_us_spread){
-        for(var i=0;i<m.cn_us_spread.length;i++){
-          var t2=toTime(m.cn_us_spread[i].d);if(t2==null)continue;
-          jpHist.push({time:t2,value:m.cn_us_spread[i].v||0,color:"rgba(108,117,125,0.2)"});
-        }
-      }
-      // Add latest JP and EU values
-      var todayTs=toTime(m.us_jp_spread[0].d);
-      if(todayTs!=null){
-        jpHist.push({time:todayTs,value:m.us_jp_spread[0].v,color:"rgba(253,126,20,0.7)"});
-      }
-      if(m.us_eu_spread&&m.us_eu_spread.length){
-        jpHist.push({time:todayTs,value:m.us_eu_spread[0].v,color:"rgba(32,201,151,0.7)"});
-      }
-      jpHist.sort(function(a,b){return a.time-b.time;});
-      var jpHs=jpChart.addHistogramSeries({priceFormat:{type:"price",precision:2,minMove:0.01}});
-      jpHs.setData(jpHist);
-      jpChart.timeScale().fitContent();
-      _macroCharts["chart-useu_combo"]=jpChart;
-    }
-  }
-// ETF curves
+  // ETF curves
   if(m.national_etf&&m.national_etf.length){
     var ec=["#dc3545","#1a73e8","#fd7e14","#6f42c1","#198754","#20c997"];
     for(var ei=0;ei<m.national_etf.length;ei++){
@@ -1326,70 +1291,6 @@ function showMacroFullLPR(id,title){
     l1.setData(pts1);
     var l5=chart.addLineSeries({color:"#6f42c1",lineWidth:2,priceFormat:{type:"price",precision:2,minMove:0.01}});
     l5.setData(pts5);
-    chart.timeScale().fitContent();
-    _macroFullChart=chart;
-  },100);
-}
-
-function showMacroFullCNUS(){
-  var m=P.macro||{};
-  _closeMacroFull();
-  var ov=document.createElement("div");ov.className="macro-full-overlay";ov.id="macro-full-overlay";
-  ov.innerHTML='<div class="macro-full-box"><div class="macro-full-title"><span>中美国债10Y收益率与利差</span><span style="cursor:pointer;color:#6c757d" onclick="this.closest(\'.macro-full-overlay\').remove()">&times; 关闭</span></div><div class="macro-full-chart" id="macro-full-chart"></div></div>';
-  ov.addEventListener("click",function(e){if(e.target===ov)ov.remove();});
-  document.body.appendChild(ov);
-  setTimeout(function(){
-    var el=document.getElementById("macro-full-chart");if(!el)return;
-    var chart=LightweightCharts.createChart(el,{layout:{background:{type:"solid",color:"#fff"},textColor:"#212529"},grid:{vertLines:{color:"#f1f3f5"},horzLines:{color:"#f1f3f5"}},crosshair:{mode:1},timeScale:{visible:true,timeVisible:false},rightPriceScale:{visible:true,borderColor:"#dee2e6"},width:el.clientWidth,height:el.clientHeight});
-    var cnByD={};if(m.bond10y)for(var i=0;i<m.bond10y.length;i++)cnByD[m.bond10y[i].d]=m.bond10y[i].v;
-    var usByD={};if(m.us_bond10y)for(var i=0;i<m.us_bond10y.length;i++)usByD[m.us_bond10y[i].d]=m.us_bond10y[i].v;
-    var spHist=[],cnLine=[],usLine=[];
-    if(m.cn_us_spread){
-      for(var i=0;i<m.cn_us_spread.length;i++){
-        var sd=m.cn_us_spread[i].d;var st=toTime(sd);if(st==null)continue;
-        var sv=m.cn_us_spread[i].v||0;
-        spHist.push({time:st,value:sv,color:sv>=0?"rgba(220,53,69,0.4)":"rgba(25,135,84,0.4)"});
-        if(cnByD[sd]!=null)cnLine.push({time:st,value:cnByD[sd]});
-        if(usByD[sd]!=null)usLine.push({time:st,value:usByD[sd]});
-      }
-    }
-    var hs=chart.addHistogramSeries({priceFormat:{type:"price",precision:2,minMove:0.01}});
-    hs.setData(spHist);
-    if(cnLine.length){var cl=chart.addLineSeries({color:"#dc3545",lineWidth:2});cl.setData(cnLine);}
-    if(usLine.length){var ul=chart.addLineSeries({color:"#1a73e8",lineWidth:2,lineStyle:2});ul.setData(usLine);}
-    chart.timeScale().fitContent();
-    _macroFullChart=chart;
-  },100);
-}
-function showMacroFullUSEU(){
-  _closeMacroFull();
-  var ov=document.createElement("div");ov.className="macro-full-overlay";ov.id="macro-full-overlay";
-  ov.innerHTML='<div class="macro-full-box"><div class="macro-full-title"><span>美日/美欧 10Y收益率利差</span><span style="cursor:pointer;color:#6c757d" onclick="this.closest(\'.macro-full-overlay\').remove()">&times; 关闭</span></div><div class="macro-full-chart" id="macro-full-chart"></div><div style="padding:8px 16px;font-size:12px;color:#495057"><span style="color:#fd7e14;font-weight:700">\u25a0 美日利差</span> &nbsp; <span style="color:#20c997;font-weight:700">\u25a0 美欧利差</span> &nbsp; <span style="color:#6c757d">\u25a0 中美利差(参考)</span></div></div>';
-  ov.addEventListener("click",function(e){if(e.target===ov)ov.remove();});
-  document.body.appendChild(ov);
-  setTimeout(function(){
-    var m=P.macro||{};
-    var el=document.getElementById("macro-full-chart");if(!el)return;
-    var chart=LightweightCharts.createChart(el,{layout:{background:{type:"solid",color:"#fff"},textColor:"#212529"},grid:{vertLines:{color:"#f1f3f5"},horzLines:{color:"#f1f3f5"}},crosshair:{mode:1},timeScale:{visible:true,timeVisible:false},rightPriceScale:{visible:true,borderColor:"#dee2e6"},width:el.clientWidth,height:el.clientHeight});
-    var allHist=[];
-    // CN-US spread history as reference (gray)
-    if(m.cn_us_spread){
-      for(var i=0;i<m.cn_us_spread.length;i++){
-        var t2=toTime(m.cn_us_spread[i].d);if(t2==null)continue;
-        allHist.push({time:t2,value:m.cn_us_spread[i].v||0,color:"rgba(108,117,125,0.2)"});
-      }
-    }
-    // US-JP latest (orange)
-    if(m.us_jp_spread&&m.us_jp_spread.length){
-      var ts=toTime(m.us_jp_spread[0].d);if(ts!=null)allHist.push({time:ts,value:m.us_jp_spread[0].v,color:"rgba(253,126,20,0.8)"});
-    }
-    // US-EU latest (teal)
-    if(m.us_eu_spread&&m.us_eu_spread.length){
-      var ts2=toTime(m.us_eu_spread[0].d);if(ts2!=null)allHist.push({time:ts2,value:m.us_eu_spread[0].v,color:"rgba(32,201,151,0.8)"});
-    }
-    allHist.sort(function(a,b){return a.time-b.time;});
-    var hs=chart.addHistogramSeries({priceFormat:{type:"price",precision:2,minMove:0.01}});
-    hs.setData(allHist);
     chart.timeScale().fitContent();
     _macroFullChart=chart;
   },100);
