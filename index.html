@@ -1216,9 +1216,13 @@ function drawAllMacroCharts(){
       if(efh.length>1)drawMacroLine("chart-etf"+ei,efh,ec[ei%ec.length],1);
     }
   }
+  // Commodities (merged)
+  var allC2=[];
+  if(m.commodity&&m.commodity.length)allC2=allC2.concat(m.commodity);
+  if(m.commodity2&&m.commodity2.length)allC2=allC2.concat(m.commodity2);
+  if(m.commodity3&&m.commodity3.length)allC2=allC2.concat(m.commodity3);
+  for(var ci=0;ci<allC2.length&&ci<15;ci++)drawMacroLine("chart-comm"+ci,allC2[ci].data,allC2[ci].color||"#fd7e14",1);
   if(m.forex&&m.forex.length){for(var i=0;i<m.forex.length;i++)drawMacroLine("chart-forex"+i,m.forex[i].data,m.forex[i].color||"#1a73e8",1);}
-// commodity3 charts merged into comm
-// LPR chart removed
 }
 
 
@@ -1671,14 +1675,4 @@ function _syncMissingKlines(){
 
 function updateStatus(msg){
   var el=document.getElementById('status-bar');
-  if(el)el.textContent=new Date().toLocaleString()+' | '+msg;
-}
-document.addEventListener('DOMContentLoaded',function(){
-  if(localStorage.getItem('cockpit_v13_logged_in')==='1'){
-    document.getElementById('login-overlay').style.display='none';
-    try{init();}catch(e){alert('初始化失败: '+e.message);}
-  }
-});
-</script>
-</body>
-</html>
+  if(el)el.textContent=new 
