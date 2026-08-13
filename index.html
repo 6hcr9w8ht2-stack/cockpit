@@ -895,7 +895,7 @@ function renderMacro(){
 	  var liqHtml="";
 	  if(m.volume_trend&&m.volume_trend.length)liqHtml+='<div class="macro-card" id="mc-volume_trend" onclick="showMacroFullBar(\'volume_trend\',\'全A成交额（亿）\',\'#6c757d\',0,\'亿\')"><div class="mc-title"><span>全A成交额(亿)</span><span style="font-weight:700;color:#6c757d">'+(m.volume_trend[m.volume_trend.length-1].v!=null?m.volume_trend[m.volume_trend.length-1].v.toFixed(0):"--")+' 亿</span></div><div class="macro-chart" id="chart-volume_trend"></div></div>';
 	  if(m.margin&&m.margin.length)liqHtml+=macroCardBalance("融资融券余额","margin",m.margin,"亿","#e83e8c",0);
-	  if(m.northbound&&m.northbound.length)liqHtml+=macroCard("北向资金累计(亿)","northbound",m.northbound,"亿","#dc3545",0);
+	  // 北向资金 removed
 	  document.getElementById("macro-liquidity").innerHTML=liqHtml||'<div class="loading">流动性数据收集中...</div>';
   
   
@@ -926,7 +926,7 @@ document.getElementById("macro-rates").innerHTML=ratesHtml||'<div class="loading
   var etfHtml="";
   var etfList=m.national_etf||[];
   if(etfList.length){
-    etfHtml+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">';
+    etfHtml+='<div style="display:grid;grid-template-columns:repeat(3,minmax(310px,1fr));gap:8px;margin-bottom:8px">';
     var ec=["#dc3545","#1a73e8","#fd7e14","#6f42c1","#198754","#20c997"];
     for(var i=0;i<etfList.length;i++){
       var e=etfList[i];
@@ -1168,7 +1168,7 @@ function drawAllMacroCharts(){
   if(m.social_retail&&m.social_retail.length)drawMacroLine("chart-social_retail",m.social_retail,"#fd7e14",1);
   if(m.volume_trend&&m.volume_trend.length)drawMacroLine("chart-volume_trend",m.volume_trend,"#6c757d",1);
   if(m.margin&&m.margin.length)drawMacroLine("chart-margin",m.margin,"#e83e8c",1);
-  if(m.northbound&&m.northbound.length)drawMacroLine("chart-northbound",m.northbound,"#dc3545",1);
+  // northbound chart removed
   if(m.shibor&&m.shibor.length)drawMacroLine("chart-rate-shibor",m.shibor,"#20c997",3);
   if(m.m2&&m.m2.length)drawMacroLine("chart-rate-m2",m.m2,"#fd7e14",1);
   if(m.bond10y&&m.bond10y.length)drawMacroLine("chart-rate-bond10y",m.bond10y,"#6f42c1",2);
