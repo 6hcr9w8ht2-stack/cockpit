@@ -1166,29 +1166,40 @@ function drawAllMacroCharts(){
   if(m.shibor&&m.shibor.length)drawMacroLine("chart-rate-shibor",m.shibor,"#20c997",3);
   if(m.m2&&m.m2.length)drawMacroLine("chart-rate-m2",m.m2,"#fd7e14",1);
   if(m.bond10y&&m.bond10y.length)drawMacroLine("chart-rate-bond10y",m.bond10y,"#6f42c1",2);
-  // CN-US combo chart: dual line + spread overlay
+  // CN-US combo chart: dual line + spread bars (dual Y-axis, matplotlib style)
   if(m.cn_us_spread&&m.cn_us_spread.length){
     var comboEl=document.getElementById("chart-cnus_combo");
     if(comboEl&&!comboEl.innerHTML){
       if(_macroCharts["cnus_combo"])_macroCharts["cnus_combo"].remove();
       comboEl.innerHTML="";
       var _w=comboEl.clientWidth||620,_h=comboEl.clientHeight||280;
-      var cChart=LightweightCharts.createChart(comboEl,{layout:{background:{type:"solid",color:"#fff"},textColor:"#212529"},grid:{vertLines:{visible:false},horzLines:{color:"#eee"}},crosshair:{mode:0},timeScale:{visible:true,timeVisible:false,secondsVisible:false,tickMarkFormatter:function(ts,mt,l){if(mt!=="Year"&&mt!=="Month"){if(isWeekend(ts))return"";}var d=new Date(ts*1000);return d.getFullYear()+"-"+(d.getMonth()<9?"0":"")+(d.getMonth()+1)+"-"+(d.getDate()<10?"0":"")+d.getDate();}},rightPriceScale:{visible:true,borderColor:"#ccc"},width:_w,height:_h});
+      var cChart=LightweightCharts.createChart(comboEl,{layout:{background:{type:"solid",color:"#fff"},textColor:"#212529"},grid:{vertLines:{visible:false},horzLines:{color:"#eee"}},crosshair:{mode:0},timeScale:{visible:true,timeVisible:false,secondsVisible:false,tickMarkFormatter:function(ts,mt,l){if(mt!=="Year"&&mt!=="Month"){if(isWeekend(ts))return"";}var d=new Date(ts*1000);return d.getFullYear()+"-"+(d.getMonth()<9?"0":"")+(d.getMonth()+1)+"-"+(d.getDate()<10?"0":"")+d.getDate();}},leftPriceScale:{visible:true,borderColor:"#ccc"},rightPriceScale:{visible:true,borderColor:"#ccc"},width:_w,height:_h});
       var cnByD4={};if(m.bond10y)for(var j=0;j<m.bond10y.length;j++)cnByD4[m.bond10y[j].d]=m.bond10y[j].v;
       var usByD4={};if(m.us_bond10y)for(var j2=0;j2<m.us_bond10y.length;j2++)usByD4[m.us_bond10y[j2].d]=m.us_bond10y[j2].v;
-      var cnPts2=[],usPts2=[],spPts2=[];
+      var cnPts2=[],usPts2=[],spBars=[];
       for(var k=0;k<m.cn_us_spread.length;k++){
         var sd=m.cn_us_spread[k].d;var st=toTime(sd);if(st==null)continue;
         if(cnByD4[sd]!=null)cnPts2.push({time:st,value:cnByD4[sd]});
         if(usByD4[sd]!=null)usPts2.push({time:st,value:usByD4[sd]});
-        spPts2.push({time:st,value:m.cn_us_spread[k].v||0});
+        var sv=m.cn_us_spread[k].v||0;
+        spBars.push({time:st,value:sv,color:sv>=0?"rgba(220,53,69,0.5)":"rgba(31,119,180,0.5)"});
       }
-      // CN line (red thick)
-      if(cnPts2.length){var cl2=cChart.addLineSeries({color:"#dc3545",lineWidth:3,priceFormat:{type:"price",precision:2,minMove:0.01}});cl2.setData(cnPts2);}
-      // US line (blue thick)
-      if(usPts2.length){var ul2=cChart.addLineSeries({color:"#1a73e8",lineWidth:3,priceFormat:{type:"price",precision:2,minMove:0.01}});ul2.setData(usPts2);}
-      // Spread line (green dashed, overlay on same axis)
-      if(spPts2.length){var sl2=cChart.addLineSeries({color:"#198754",lineWidth:1.5,lineStyle:2,priceFormat:{type:"price",precision:2,minMove:0.01}});sl2.setData(spPts2);}
+      // Spread bars on RIGHT axis (gray/blue, alpha=0.5, ax2 style)
+      if(spBars.length){
+        var sb=cChart.addHistogramSeries({priceFormat:{type:"price",precision:2,minMove:0.01},priceScaleId:"right"});
+        sb.priceScale().applyOptions({scaleMargins:{top:0.72,bottom:0}});
+        sb.setData(spBars);
+      }
+      // CN line on LEFT axis (red thick)
+      if(cnPts2.length){
+        var cl2=cChart.addLineSeries({color:"#dc3545",lineWidth:2.5,priceFormat:{type:"price",precision:2,minMove:0.01},priceScaleId:"left"});
+        cl2.setData(cnPts2);
+      }
+      // US line on LEFT axis (blue thick)
+      if(usPts2.length){
+        var ul2=cChart.addLineSeries({color:"#1a73e8",lineWidth:2.5,priceFormat:{type:"price",precision:2,minMove:0.01},priceScaleId:"left"});
+        ul2.setData(usPts2);
+      }
       cChart.timeScale().fitContent();
       _macroCharts["cnus_combo"]=cChart;
     }
