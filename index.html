@@ -1491,7 +1491,7 @@ function _closeMacroFull(){
 function showIndexChart(code,market,name){
   var panel=document.getElementById("chart-detail");
   if(!panel)return;
-  // 腾讯日线（替代旧K线源）。code 可能带 sh/sz 前缀，或纯代码 + market 参数
+  // 腾讯日线。code 可能带 sh/sz 前缀，或纯代码 + market 参数
   var txSym=code;
   if(!/^(sh|sz)/.test(code)){
     var m0=(market==="0"||market==="sz"||code.charAt(0)==="3")?"sz":"sh";
@@ -1572,7 +1572,7 @@ function startLiveQuotes(){
   updateClock();_clockTimer=setInterval(updateClock,1000);
   function poll(){
     if(!state.symbols.length)return;
-    // 腾讯批量行情，script 注入免 CORS（替代旧行情源）
+    // 腾讯批量行情，script 注入免 CORS
     var codes=[];
     for(var i=0;i<state.symbols.length;i++)codes.push((state.symbols[i].market==="sh"?"sh":"sz")+state.symbols[i].code);
     var scr=document.createElement("script");
