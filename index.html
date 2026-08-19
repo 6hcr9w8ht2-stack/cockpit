@@ -4,16 +4,64 @@
 <style>body{font-family:system-ui;background:#0b0e14;color:#8b949e;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}#s{font-size:14px}</style>
 </head><body><div id="s">loading cockpit…</div>
 <script>
-(async()=>{
- try{
-  const r=await fetch('index.html.gz',{cache:'no-store'});
-  if(!r.ok) throw new Error('HTTP '+r.status);
-  const buf=await r.arrayBuffer();
-  const ds=new DecompressionStream('gzip');
-  const txt=await new Response(new Blob([buf]).stream().pipeThrough(ds)).text();
-  document.open();document.write(txt);document.close();
- }catch(e){
-  document.getElementById('s').textContent='load failed: '+e.message+' — refresh to retry';
+(function(){
+ var TOTAL=0, tryN=0;
+ function show(msg){var el=document.getElementById('s');if(el)el.textContent=msg;}
+ function done(txt){
+  try{document.open();document.write(txt);document.close();}
+  catch(e){show('render failed: '+e.message);}
  }
+ function attempt(){
+  tryN++;
+  var ctrl=('AbortController' in window)?new AbortController():null;
+  var f=fetch('index.html.gz',{cache:'no-store',signal:ctrl?ctrl.signal:undefined});
+  var p=ctrl?Promise.race([f,new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout12s'));},12000);})]):Promise.race([f.then(function(r){
+   if(!r.ok)throw new Error('HTTP '+r.status);
+   var cl=parseInt(r.headers&&r.headers.get?r.headers.get('Content-Length'):'0',10);if(cl>0)TOTAL=cl;
+   var rd=r.body&&r.body.getReader?r.body.getReader():null;
+   if(!rd)return r.arrayBuffer();
+   return new Promise(function(resolve,reject){
+    var chunks=[],got=0,stallT=null,failed=false;
+    function fail(err){if(failed)return;failed=true;if(stallT)clearTimeout(stallT);reject(err);}
+    function resetStall(){if(stallT)clearTimeout(stallT);stallT=setTimeout(function(){try{rd.cancel();}catch(e){}fail(new Error('stall '+((got/1048576).toFixed(1))+'MB'));},9000);}
+    (function read(){
+     rd.read().then(function(res){
+      if(failed)return;
+      if(res.done){clearTimeout(stallT);resolve(chunks);return;}
+      chunks.push(res.value);got+=res.value.length;
+      resetStall();
+      show('loading cockpit… '+(TOTAL>0?Math.min(99,Math.floor(got*100/TOTAL))+'%':((got/1048576).toFixed(1))+'MB'));
+      read();
+     }).catch(fail);
+    })();
+   }).then(function(cs){
+    var ab=new Uint8Array(cs.reduce(function(a,c){return a+c.length;},0)),off=0;
+    for(var i=0;i<cs.length;i++){ab.set(cs[i],off);off+=cs[i].length;}
+    return ab.buffer;
+   });
+  },function(e){throw e;}),new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout12s'));},12000);})]);
+  if(ctrl){
+   p=p.then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.arrayBuffer();
+   },function(e){throw e;});
+  }
+  p.then(function(buf){
+   var ds=new DecompressionStream('gzip');
+   return new Response(new Blob([buf]).stream().pipeThrough(ds)).text();
+  }).then(function(txt){
+   show('rendering…');
+   done(txt);
+  }).catch(function(e){
+   if(ctrl)try{ctrl.abort();}catch(x){}
+   if(tryN<6){
+    show('reconnecting… ('+tryN+'/6) '+((e&&e.message)||''));
+    setTimeout(attempt,1500*tryN);
+   }else{
+    show('load failed: '+((e&&e.message)||'')+' — 请刷新重试 / refresh to retry');
+   }
+  });
+ }
+ attempt();
 })();
 </script></body></html>
