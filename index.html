@@ -1,64 +1,86 @@
 <!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>cockpit</title>
-<style>body{font-family:system-ui;background:#0b0e14;color:#8b949e;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}#s{font-size:14px}</style>
+<style>body{font-family:system-ui;background:#0b0e14;color:#8b949e;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}#s{font-size:14px;text-align:center;padding:0 16px;line-height:1.9}#s button{margin-top:10px;padding:8px 24px;font-size:14px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#58a6ff;cursor:pointer}</style>
 </head><body><div id="s">loading cockpit…</div>
 <script>
 (function(){
- var TOTAL=0, tryN=0;
- function show(msg){var el=document.getElementById('s');if(el)el.textContent=msg;}
- function done(txt){
-  try{document.open();document.write(txt);document.close();}
-  catch(e){show('render failed: '+e.message);}
+ var TOTAL=0, got=0, parts=[], round=0;
+ var STALL=10000, MAXR=15;
+ function show(msg,retry){
+  var el=document.getElementById('s');if(!el)return;
+  el.innerHTML=msg;
+  if(retry){
+   var b=document.createElement('button');b.textContent='重新加载 / Retry';
+   b.onclick=function(){TOTAL=0;got=0;parts=[];round=0;el.innerHTML='loading cockpit…';attempt();};
+   el.appendChild(document.createElement('br'));el.appendChild(b);
+  }
+ }
+ function pct(){return TOTAL>0?Math.min(99,Math.floor(got*100/TOTAL))+'%':(got/1048576).toFixed(1)+'MB';}
+ function render(u8){
+  show('rendering…');
+  try{
+   var ds=new DecompressionStream('gzip');
+   return new Response(new Blob([u8]).stream().pipeThrough(ds)).arrayBuffer().then(function(ab){
+    if(ab.byteLength===0)throw new Error('empty gunzip');
+    return new Response(ab).text();
+   }).then(function(txt){
+    document.open();document.write(txt);document.close();
+   }).catch(function(e){
+    show('解压失败('+((e&&e.message)||e)+') — 请点重试',true);
+   });
+  }catch(e){show('render failed: '+((e&&e.message)||e),true);}
+ }
+ function concatParts(){
+  var u8=new Uint8Array(got),off=0;
+  for(var i=0;i<parts.length;i++){u8.set(parts[i],off);off+=parts[i].length;}
+  return u8;
  }
  function attempt(){
-  tryN++;
-  var ctrl=('AbortController' in window)?new AbortController():null;
-  var f=fetch('index.html.gz',{cache:'no-store',signal:ctrl?ctrl.signal:undefined});
-  var p=ctrl?Promise.race([f,new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout12s'));},12000);})]):Promise.race([f.then(function(r){
+  round++;
+  var useRange=(got>0);
+  var headers={};if(useRange)headers['Range']='bytes='+got+'-';
+  fetch('index.html.gz?r='+round,{cache:'no-store',headers:headers}).then(function(r){
    if(!r.ok)throw new Error('HTTP '+r.status);
-   var cl=parseInt(r.headers&&r.headers.get?r.headers.get('Content-Length'):'0',10);if(cl>0)TOTAL=cl;
+   if(useRange&&r.status!==206){parts=[];got=0;}
+   var cr=r.headers&&r.headers.get?r.headers.get('Content-Range'):null;
+   var m=cr?/\/(\d+)$/.exec(cr):null;
+   if(m){TOTAL=parseInt(m[1],10);}
+   else{var cl=r.headers&&r.headers.get?r.headers.get('Content-Length'):'0';var n=cl?parseInt(cl,10):0;if(n>0)TOTAL=n;}
    var rd=r.body&&r.body.getReader?r.body.getReader():null;
-   if(!rd)return r.arrayBuffer();
+   if(!rd)return r.arrayBuffer().then(function(ab){parts=[new Uint8Array(ab)];got=ab.byteLength;return false;});
    return new Promise(function(resolve,reject){
-    var chunks=[],got=0,stallT=null,failed=false;
-    function fail(err){if(failed)return;failed=true;if(stallT)clearTimeout(stallT);reject(err);}
-    function resetStall(){if(stallT)clearTimeout(stallT);stallT=setTimeout(function(){try{rd.cancel();}catch(e){}fail(new Error('stall '+((got/1048576).toFixed(1))+'MB'));},9000);}
+    var failed=false,stallT=null;
+    function fail(err){if(failed)return;failed=true;if(stallT)clearTimeout(stallT);try{rd.cancel();}catch(x){}reject(err);}
+    function armStall(){if(stallT)clearTimeout(stallT);stallT=setTimeout(function(){fail(new Error('stall@'+(got/1048576).toFixed(1)+'MB'));},STALL);}
+    armStall();
     (function read(){
      rd.read().then(function(res){
       if(failed)return;
-      if(res.done){clearTimeout(stallT);resolve(chunks);return;}
-      chunks.push(res.value);got+=res.value.length;
-      resetStall();
-      show('loading cockpit… '+(TOTAL>0?Math.min(99,Math.floor(got*100/TOTAL))+'%':((got/1048576).toFixed(1))+'MB'));
+      if(res.done){
+       clearTimeout(stallT);
+       if(TOTAL>0&&got<TOTAL){fail(new Error('early-eof@'+(got/1048576).toFixed(1)+'MB'));return;}
+       resolve(false);return;
+      }
+      parts.push(res.value);got+=res.value.length;
+      show('loading cockpit… '+pct());
+      armStall();
       read();
      }).catch(fail);
     })();
-   }).then(function(cs){
-    var ab=new Uint8Array(cs.reduce(function(a,c){return a+c.length;},0)),off=0;
-    for(var i=0;i<cs.length;i++){ab.set(cs[i],off);off+=cs[i].length;}
-    return ab.buffer;
    });
-  },function(e){throw e;}),new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout12s'));},12000);})]);
-  if(ctrl){
-   p=p.then(function(r){
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    return r.arrayBuffer();
-   },function(e){throw e;});
-  }
-  p.then(function(buf){
-   var ds=new DecompressionStream('gzip');
-   return new Response(new Blob([buf]).stream().pipeThrough(ds)).text();
-  }).then(function(txt){
-   show('rendering…');
-   done(txt);
+  }).then(function(){
+   if(TOTAL>0&&got<TOTAL)throw new Error('short@'+pct());
+   render(concatParts());
   }).catch(function(e){
-   if(ctrl)try{ctrl.abort();}catch(x){}
-   if(tryN<6){
-    show('reconnecting… ('+tryN+'/6) '+((e&&e.message)||''));
-    setTimeout(attempt,1500*tryN);
+   if(got>0&&got>=TOTAL&&TOTAL>0){
+    render(concatParts());return;
+   }
+   if(round<MAXR){
+    show('续传重连… 第'+round+'次 已 '+pct());
+    setTimeout(attempt,1000+500*Math.min(round,8));
    }else{
-    show('load failed: '+((e&&e.message)||'')+' — 请刷新重试 / refresh to retry');
+    show('加载失败: '+((e&&e.message)||e)+'<br>网络不稳，请点下方按钮重试（会续传，不重头下）',true);
    }
   });
  }
